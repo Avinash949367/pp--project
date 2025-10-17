@@ -1,17 +1,18 @@
-# TODO List
+# TODO: Add Booking Cancellation Endpoint
 
-## Completed Tasks
-- [x] Create auth middleware in backend/middleware/auth.js
-- [x] Update sortStations function in frontend/results.html to sort by rating
-- [x] Replace custom auth middleware with passport JWT strategy for consistency
-- [x] Update reviewRoutes.js to use passport JWT authentication
-- [x] Remove unused custom auth middleware file
-- [x] Add "View Reviews" button next to ratings in station cards
-- [x] Create reviews.html page with review display and add review functionality
-- [x] Add language dropdown menu in desktop navigation with Google Translate integration
-- [x] Change currency from USD ($) to INR (₹) in station_view_slots.html booking amounts
+## Steps to Complete
 
-## Pending Tasks
-- [ ] Test the passport JWT authentication implementation
-- [ ] Test the rating sort functionality
-- [ ] Verify JWT token handling in protected routes
+- [x] Add `cancelBooking` function to `backend/controllers/slotController.js`
+  - Retrieve booking ID from request params
+  - Find booking by ID and validate it exists and is cancellable
+  - Update status to 'cancelled' and cancelReason to 'user_cancelled'
+  - Save and return success response
+
+- [x] Add new PUT route `/bookings/:bookingId/cancel` to `backend/routes/slotRoutes.js`
+  - Use JWT authentication
+  - Call the `cancelBooking` controller function
+
+- [x] Test the new endpoint
+  - Ensure booking status updates correctly
+  - Handle errors like booking not found or already cancelled
+  - Verify authentication is enforced

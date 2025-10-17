@@ -45,4 +45,10 @@ router.get('/dashboard-stats/:stationId', slotController.getDashboardStats);
 // Get recent bookings for station admin
 router.get('/recent-bookings/:stationId', slotController.getRecentBookings);
 
+// Get slot bookings by user ID
+router.get('/slotbookings/:userId', slotController.getSlotBookingsByUserId);
+
+// Cancel a booking
+router.put('/bookings/:bookingId/cancel', passport.authenticate('jwt', { session: false }), slotController.cancelBooking);
+
 module.exports = router;

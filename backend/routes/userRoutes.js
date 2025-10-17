@@ -3,6 +3,7 @@ const router = express.Router();
 const {
   getAllUsers,
   getUserById,
+  getUserByEmail,
   updateUser,
   deleteUser,
   banUser,
@@ -58,5 +59,8 @@ router.post('/admin/users/:id/disable', ensureAuthenticated, ensureAdmin, disabl
 
 // General users route (admin only)
 router.get('/users', ensureAuthenticated, ensureAdmin, getAllUsers);
+
+// Get user by email (for Flutter app)
+router.get('/users/email/:email', getUserByEmail);
 
 module.exports = router;

@@ -9,6 +9,7 @@ const {
   changeUserPassword,
   getUserDashboard,
   getUserVehicles,
+  getUserPayments,
   addVehicle,
   setPrimaryVehicle,
   removeVehicle,
@@ -90,6 +91,9 @@ router.get('/vehicles', ensureAuthenticated, getUserVehicles);
 router.post('/vehicles', ensureAuthenticated, addVehicle);
 router.patch('/vehicles/:id/primary', ensureAuthenticated, setPrimaryVehicle);
 router.delete('/vehicles/:id', ensureAuthenticated, removeVehicle);
+
+// Payment routes
+router.get('/payments', ensureAuthenticated, getUserPayments);
 
 // Favorite routes
 router.post('/favorites', ensureAuthenticated, addFavorite);

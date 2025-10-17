@@ -5,6 +5,7 @@ const FastagTransaction = require('../models/FastagTransaction');
 const SlotBooking = require('../models/SlotBooking');
 const ParkingHistory = require('../models/ParkingHistory');
 const Station = require('../models/Station');
+const Payment = require('../models/Payment');
 const bcrypt = require('bcryptjs');
 
 // Get user vehicles
@@ -26,6 +27,42 @@ const getUserVehicles = async (req, res) => {
     });
   } catch (error) {
     console.error('Error fetching user vehicles:', error);
+    res.status(500).json({ message: 'Server error', error: error.message });
+  }
+};
+
+// Get user payments
+const getUserPayments = async (req, res) => {
+  try {
+    const userId = req.user.id;
+
+    // Check if user exists and has role 'user'
+    const user = await User.findById(userId);
+    if (!user || user.role !== 'user') {
+      return res.status(403).json({ message: 'Access denied' });
+    }
+
+    // Get payments by joining with SlotBooking where userId matches
+    const payments = await Payment.find()
+      .populate({
+        path: 'bookingId',
+        match: { userId: userId },
+        populate: [
+          { path: 'stationId', select: 'name' },
+          { path: 'vehicleId', select: 'number type' }
+        ]
+      })
+      .sort({ timestamp: -1 });
+
+    // Filter out payments where bookingId is null (booking not found or not belonging to user)
+    const userPayments = payments.filter(payment => payment.bookingId !== null);
+
+    res.json({
+      success: true,
+      payments: userPayments
+    });
+  } catch (error) {
+    console.error('Error fetching user payments:', error);
     res.status(500).json({ message: 'Server error', error: error.message });
   }
 };
@@ -889,24 +926,26 @@ const getUserBookings = async (req, res) => {
       return res.status(403).json({ message: 'Access denied' });
     }
 
-    // Get current and future bookings (not cancelled or expired)
+    // Get all bookings (not cancelled or expired)
     const bookings = await SlotBooking.find({
       userId,
-      status: { $in: ['reserved', 'active', 'confirmed'] },
-      bookingEndTime: { $gte: new Date() } // Future or current bookings
+      status: { $in: ['reserved', 'active', 'confirmed', 'completed'] }
     })
       .populate('stationId', 'name location address')
       .populate('vehicleId', 'number type')
+      .populate('slotId', 'slotId type')
       .sort({ bookingStartTime: 1 }); // Sort by start time ascending
 
     const formattedBookings = bookings.map(booking => ({
       id: booking._id,
+      stationId: booking.stationId?._id || '',
       stationName: booking.stationId?.name || 'Unknown Station',
       stationLocation: booking.stationId?.location || '',
       stationAddress: booking.stationId?.address || '',
+      slotId: booking.slotId?.slotId || 'N/A',
       vehicle: booking.vehicleId ? `${booking.vehicleId.number} (${booking.vehicleId.type})` : 'Unknown vehicle',
-      startTime: booking.bookingStartTime,
-      endTime: booking.bookingEndTime,
+      bookingStartTime: booking.bookingStartTime,
+      bookingEndTime: booking.bookingEndTime,
       amountPaid: booking.amountPaid,
       paymentMethod: booking.paymentMethod,
       paymentStatus: booking.paymentStatus,
@@ -931,6 +970,7 @@ module.exports = {
   changeUserPassword,
   getUserDashboard,
   getUserVehicles,
+  getUserPayments,
   addVehicle,
   setPrimaryVehicle,
   removeVehicle,

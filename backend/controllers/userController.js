@@ -62,6 +62,38 @@ const getUserById = async (req, res) => {
   }
 };
 
+// Get user by email
+const getUserByEmail = async (req, res) => {
+  try {
+    const { email } = req.params;
+    const user = await User.findOne({ email }).select('-password -confirmationToken -otpExpiry');
+
+    if (!user) {
+      return res.status(404).json({ message: 'User not found' });
+    }
+
+    res.json({
+      _id: user._id,
+      name: user.name,
+      email: user.email,
+      phone: user.phone || '',
+      profileImage: user.profileImage,
+      role: user.role,
+      membershipStatus: user.membershipStatus,
+      isConfirmed: user.isConfirmed,
+      walletBalance: user.walletBalance,
+      vehicle: user.vehicle,
+      savedVehicles: user.savedVehicles,
+      preferredSpots: user.preferredSpots,
+      createdAt: user.createdAt,
+      updatedAt: user.updatedAt
+    });
+  } catch (error) {
+    console.error('Error fetching user:', error);
+    res.status(500).json({ message: 'Server error', error: error.message });
+  }
+};
+
 // Update user (admin only)
 const updateUser = async (req, res) => {
   try {
@@ -207,6 +239,7 @@ const disableUser = async (req, res) => {
 module.exports = {
   getAllUsers,
   getUserById,
+  getUserByEmail,
   updateUser,
   deleteUser,
   banUser,

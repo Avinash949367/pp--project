@@ -209,7 +209,7 @@ exports.login = async (req, res) => {
 
     res.json({
       token,
-      user: { name: user.name, role: user.role, stationId },
+      user: { _id: user._id, name: user.name, email: user.email, role: user.role, stationId },
     });
   } catch (err) {
     console.error('Error during login:', err.message);

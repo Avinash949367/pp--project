@@ -255,7 +255,7 @@ exports.createBooking = async (req, res) => {
             bookingEndTime: endTime,
             amountPaid,
             paymentMethod,
-            paymentStatus: paymentMethod === 'coupon' ? 'success' : 'paid',
+            paymentStatus: paymentMethod === 'coupon' ? 'success' : 'success',
             status: 'active',
             cancelReason: null
         });
@@ -738,6 +738,64 @@ exports.getRecentBookings = async (req, res) => {
         res.status(200).json(formattedBookings);
     } catch (error) {
         console.error('Error in getRecentBookings:', error);
+        res.status(500).json({ message: error.message });
+    }
+};
+
+// Get slot bookings by user ID
+exports.getSlotBookingsByUserId = async (req, res) => {
+    try {
+        const { userId } = req.params;
+        const SlotBooking = require('../models/SlotBooking');
+        const bookings = await SlotBooking.find({ userId: userId }).populate('slotId', 'slotId').populate('vehicleId', 'number').sort({ bookingStartTime: -1 });
+        res.status(200).json(bookings);
+    } catch (error) {
+        res.status(500).json({ message: error.message });
+    }
+};
+
+// Cancel a booking
+exports.cancelBooking = async (req, res) => {
+    try {
+        const { bookingId } = req.params;
+
+        // Get user from JWT token
+        if (!req.user || !req.user.id) {
+            return res.status(401).json({ message: 'Authentication required' });
+        }
+
+        const SlotBooking = require('../models/SlotBooking');
+        const User = require('../models/User');
+
+        // Find the booking
+        const booking = await SlotBooking.findById(bookingId);
+        if (!booking) {
+            return res.status(404).json({ message: 'Booking not found' });
+        }
+
+        // Verify the booking belongs to the authenticated user
+        if (booking.userId.toString() !== req.user.id) {
+            return res.status(403).json({ message: 'You can only cancel your own bookings' });
+        }
+
+        // Check if booking can be cancelled (not already cancelled or expired)
+        if (booking.status === 'cancelled') {
+            return res.status(400).json({ message: 'Booking is already cancelled' });
+        }
+
+        if (booking.status === 'expired') {
+            return res.status(400).json({ message: 'Booking has already expired' });
+        }
+
+        // Update booking status
+        booking.status = 'cancelled';
+        booking.cancelReason = 'user_cancelled';
+
+        await booking.save();
+
+        res.status(200).json({ message: 'Booking cancelled successfully', booking });
+    } catch (error) {
+        console.error('Error cancelling booking:', error);
         res.status(500).json({ message: error.message });
     }
 };
