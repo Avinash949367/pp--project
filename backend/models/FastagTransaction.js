@@ -6,36 +6,59 @@ const fastagTransactionSchema = new mongoose.Schema({
     ref: 'Vehicle',
     required: true
   },
-  txnId: {
-    type: String,
-    unique: true,
+  userId: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'User',
     required: true
+  },
+  vehicleNumber: {
+    type: String,
+    required: true,
+    trim: true
   },
   type: {
     type: String,
-    enum: ['recharge', 'deduction'],
+    enum: ['recharge', 'toll_payment', 'refund', 'deduction'],
     required: true
   },
   amount: {
     type: Number,
-    required: true
+    required: true,
+    min: 0
   },
   method: {
     type: String,
     enum: ['upi', 'card', 'wallet', 'auto-deduction'],
     required: true
   },
-  date: {
-    type: Date,
-    default: Date.now
+  location: {
+    type: String,
+    trim: true
   },
   status: {
     type: String,
-    enum: ['success', 'failed'],
-    default: 'success'
+    enum: ['completed', 'pending', 'failed', 'success'],
+    default: 'completed'
+  },
+  txnId: {
+    type: String,
+    unique: true,
+    required: true
+  },
+  description: {
+    type: String,
+    trim: true
+  },
+  date: {
+    type: Date,
+    default: Date.now
   }
 }, {
   timestamps: true
 });
+
+// Index for efficient queries
+fastagTransactionSchema.index({ userId: 1, createdAt: -1 });
+fastagTransactionSchema.index({ vehicleNumber: 1 });
 
 module.exports = mongoose.model('FastagTransaction', fastagTransactionSchema);

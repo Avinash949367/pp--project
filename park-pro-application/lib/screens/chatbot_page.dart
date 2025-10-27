@@ -6,6 +6,10 @@ import 'package:shared_preferences/shared_preferences.dart';
 import 'package:flutter/foundation.dart' show kIsWeb;
 import 'dart:io';
 import 'bookings_page.dart';
+import 'package:flutter_tts/flutter_tts.dart';
+import 'package:speech_to_text/speech_to_text.dart' as stt;
+import 'dart:async';
+import 'package:permission_handler/permission_handler.dart';
 
 class ChatbotPage extends StatefulWidget {
   const ChatbotPage({super.key});
@@ -19,6 +23,13 @@ class _ChatbotPageState extends State<ChatbotPage> {
   List<Map<String, dynamic>> _messages =
       []; // {'sender':'user/bot', 'text': '...'}
   final ScrollController _scrollController = ScrollController();
+  late FlutterTts _flutterTts;
+  late stt.SpeechToText _speech;
+  bool _isListening = false;
+  String _lastWords = '';
+  Timer? _listenTimer;
+  bool _voiceMode = false;
+  bool _wakeWordListening = false;
 
   void _scrollToBottom() {
     if (_scrollController.hasClients) {
@@ -37,7 +48,24 @@ class _ChatbotPageState extends State<ChatbotPage> {
   @override
   void initState() {
     super.initState();
+    _flutterTts = FlutterTts();
+    _speech = stt.SpeechToText();
+    _requestPermissions();
     _loadTokenAndSession();
+    _startWakeWordListening();
+  }
+
+  Future<void> _requestPermissions() async {
+    var status = await Permission.microphone.request();
+    if (status.isGranted) {
+      // Permission granted
+    } else {
+      // Handle permission denied
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+            content: Text('Microphone permission is required for voice input')),
+      );
+    }
   }
 
   Future<void> _loadTokenAndSession() async {
@@ -115,6 +143,181 @@ class _ChatbotPageState extends State<ChatbotPage> {
     return null;
   }
 
+  void _listen() async {
+    if (!_isListening) {
+      bool available = await _speech.initialize(
+        onStatus: (val) => print('onStatus: $val'),
+        onError: (val) => setState(() {
+          _isListening = false;
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+                content: Text('Speech recognition error. Please try again.')),
+          );
+        }),
+      );
+      if (available) {
+        setState(() => _isListening = true);
+        _speech.listen(
+          onResult: (val) => setState(() {
+            _lastWords = val.recognizedWords;
+            if (val.hasConfidenceRating && val.confidence > 0) {
+              _controller.text = _lastWords;
+              _sendMessage();
+            }
+          }),
+        );
+        // Start 10-second timer
+        _listenTimer = Timer(const Duration(seconds: 10), () {
+          _stopListening();
+        });
+      } else {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Speech recognition not available.')),
+        );
+      }
+    } else {
+      _stopListening();
+    }
+  }
+
+  void _stopListening() {
+    _speech.stop();
+    setState(() => _isListening = false);
+    _listenTimer?.cancel();
+  }
+
+  void _activateVoiceMode() {
+    setState(() => _voiceMode = true);
+    _listen();
+    _flutterTts.setVolume(1.0);
+    _flutterTts.setSpeechRate(0.5);
+    _flutterTts.setPitch(1.0);
+    _flutterTts
+        .speak("Voice mode activated. Say 'hey vision' to start listening.");
+  }
+
+  void _deactivateVoiceMode() {
+    setState(() => _voiceMode = false);
+    _stopListening();
+    _flutterTts.speak("Voice mode deactivated.");
+  }
+
+  void _checkWakeWord(String text) {
+    if (text.toLowerCase().contains('hey vision') && !_voiceMode) {
+      _activateVoiceMode();
+    }
+  }
+
+  void _startWakeWordListening() async {
+    if (!_wakeWordListening) {
+      bool available = await _speech.initialize(
+        onStatus: (val) => print('Wake word listening status: $val'),
+        onError: (val) => print('Wake word listening error: $val'),
+      );
+      if (available) {
+        setState(() => _wakeWordListening = true);
+        _speech.listen(
+          onResult: (val) {
+            String recognizedText = val.recognizedWords.toLowerCase();
+            print('Wake word detected: $recognizedText');
+            if (recognizedText.contains('hey vision') && !_voiceMode) {
+              _activateVoiceMode();
+            }
+          },
+          listenFor: const Duration(seconds: 30), // Listen continuously
+          pauseFor: const Duration(seconds: 5), // Pause briefly between listens
+          partialResults: true,
+          onSoundLevelChange: (level) => print('Sound level: $level'),
+        );
+      }
+    }
+  }
+
+  void _handleAction(String action, String screen, dynamic data) {
+    switch (action) {
+      case 'navigate':
+        _navigateToScreen(screen, data: data);
+        break;
+      case 'display':
+        // Handle display actions like showing data in chat
+        if (screen == 'payments' && data != null) {
+          setState(() {
+            _messages.add(
+                {'sender': 'bot', 'text': 'Here is your payment history:'});
+            if (data is List && data.isNotEmpty) {
+              for (var payment in data) {
+                String paymentText =
+                    'Amount: ₹${payment['amount'] ?? 'N/A'}\nDate: ${payment['date'] ?? 'N/A'}\nStatus: ${payment['status'] ?? 'N/A'}';
+                _messages.add({'sender': 'bot', 'text': paymentText});
+              }
+            } else {
+              _messages
+                  .add({'sender': 'bot', 'text': 'No payment history found.'});
+            }
+          });
+        } else if (screen == 'emergency') {
+          setState(() {
+            _messages.add({
+              'sender': 'bot',
+              'text': 'Emergency contacts: Police - 100, Ambulance - 108.'
+            });
+          });
+        }
+        break;
+      case 'cancel':
+        // Show confirmation dialog for cancellation
+        _showConfirmationDialog(
+            'Cancel Booking', 'Are you sure you want to cancel this booking?',
+            () {
+          // Implement cancellation logic
+          setState(() {
+            _messages.add(
+                {'sender': 'bot', 'text': 'Booking cancelled successfully.'});
+          });
+        });
+        break;
+      case 'logout':
+        _showConfirmationDialog('Logout', 'Are you sure you want to logout?',
+            () {
+          // Implement logout logic
+          Navigator.pushNamedAndRemoveUntil(
+              context, '/login', (route) => false);
+        });
+        break;
+      default:
+        // Handle unknown actions
+        break;
+    }
+  }
+
+  void _showConfirmationDialog(
+      String title, String message, VoidCallback onConfirm) {
+    showDialog(
+      context: context,
+      builder: (BuildContext context) {
+        return AlertDialog(
+          title: Text(title),
+          content: Text(message),
+          actions: <Widget>[
+            TextButton(
+              child: Text('Cancel'),
+              onPressed: () {
+                Navigator.of(context).pop();
+              },
+            ),
+            TextButton(
+              child: Text('Confirm'),
+              onPressed: () {
+                Navigator.of(context).pop();
+                onConfirm();
+              },
+            ),
+          ],
+        );
+      },
+    );
+  }
+
   Future<void> _sendMessage() async {
     if (_controller.text.trim().isEmpty || _isLoading) return;
 
@@ -150,8 +353,12 @@ class _ChatbotPageState extends State<ChatbotPage> {
         // Handle navigation based on action and screen
         if (action == 'navigate' && screen != null) {
           _navigateToScreen(screen, data: navData);
+        } else if (action == 'cancel' || action == 'logout') {
+          _handleAction(action, screen ?? '', navData);
         } else if (action == 'display' &&
-            screen == 'bookings' &&
+            (screen == 'payments' ||
+                screen == 'emergency' ||
+                screen == 'bookings') &&
             navData != null) {
           // Display bookings directly in chat
           setState(() {
@@ -179,10 +386,49 @@ class _ChatbotPageState extends State<ChatbotPage> {
             }
             _messages = newMessages;
           });
+          // Speak the response
+          await _flutterTts.setVolume(1.0);
+          await _flutterTts.setSpeechRate(0.5);
+          await _flutterTts.setPitch(1.0);
+          await _flutterTts.speak(botResponse);
+        } else if (action == 'display' &&
+            screen == 'stations' &&
+            navData != null) {
+          // Display stations directly in chat
+          setState(() {
+            List<Map<String, dynamic>> newMessages = List.from(_messages);
+            newMessages.add({'sender': 'bot', 'text': botResponse});
+            if (navData is List && navData.isNotEmpty) {
+              for (var station in navData) {
+                String stationText =
+                    'Station: ${station['name'] ?? 'Unknown Station'}\n'
+                    'Address: ${station['address'] ?? 'N/A'}\n'
+                    'City: ${station['city'] ?? 'N/A'}\n'
+                    'Slots: ${station['slots'] ?? 'N/A'}\n'
+                    'Price: ₹${station['price'] ?? 'N/A'}';
+                newMessages.add({'sender': 'bot', 'text': stationText});
+              }
+              // Add "View Details" button
+              newMessages.add({
+                'sender': 'bot',
+                'text': 'View Details',
+                'action': 'view_details_stations',
+                'data': navData
+              });
+            } else {
+              newMessages
+                  .add({'sender': 'bot', 'text': 'No parking stations found.'});
+            }
+            _messages = newMessages;
+          });
+          // Speak the response
+          await _flutterTts.speak(botResponse);
         } else {
           setState(() {
             _messages.add({'sender': 'bot', 'text': botResponse});
           });
+          // Speak the response
+          await _flutterTts.speak(botResponse);
         }
       } else {
         setState(() {
@@ -292,7 +538,18 @@ class _ChatbotPageState extends State<ChatbotPage> {
                       hintStyle: TextStyle(color: Colors.white54),
                       border: InputBorder.none,
                     ),
+                    onChanged: _checkWakeWord,
                   ),
+                ),
+                IconButton(
+                  icon: _isListening
+                      ? const Icon(Icons.mic, color: Colors.red)
+                      : const Icon(Icons.mic_none, color: Color(0xFF1E90FF)),
+                  onPressed: _listen,
+                ),
+                IconButton(
+                  icon: const Icon(Icons.stop, color: Colors.red),
+                  onPressed: _stopListening,
                 ),
                 IconButton(
                   icon: _isLoading

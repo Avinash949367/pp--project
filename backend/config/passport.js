@@ -57,7 +57,7 @@ if (process.env.GOOGLE_CLIENT_ID && process.env.GOOGLE_CLIENT_SECRET) {
 // JWT Strategy for API authentication
 const opts = {
   jwtFromRequest: ExtractJwt.fromAuthHeaderAsBearerToken(),
-  secretOrKey: process.env.JWT_SECRET || 'default_jwt_secret_key',
+  secretOrKey: 'default_jwt_secret_key',
 };
 
 const StoreAdminCredentials = require('../models/StoreAdminCredentials');

@@ -3,863 +3,304 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-  <title>Document</title>
-  <!-- <link rel="stylesheet" href="css/style.css" /> -->
+  <title>Get FASTag</title>
   <script src="https://cdn.tailwindcss.com"></script>
   <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet" />
   <link href="https://fonts.googleapis.com/icon?family=Material+Icons" rel="stylesheet" />
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" />
   <style>
     .option {
-      text-decoration: none;       /* Remove underline */
-      color: #1e3740;              /* Dark teal text color */
-      padding: 8px 12px;           /* Spacing around text */
-      border-radius: 8px;          /* Rounded corners */
-      transition: all 0.3s ease;   /* Smooth hover transition */
+      text-decoration: none;
+      color: #1e3740;
+      padding: 8px 12px;
+      border-radius: 8px;
+      transition: all 0.3s ease;
       font-weight: 500;
     }
-
-    /* Hover effect */
     .option:hover {
-      color: white;                /* Text turns white */
-      background-color: #46949d;   /* Medium teal background on hover */
-      box-shadow: 0 2px 6px rgb(18, 105, 28); /* Subtle shadow */
+      color: white;
+      background-color: #46949d;
+      box-shadow: 0 2px 6px rgb(18, 105, 28);
     }
-
-      .file-upload input[type="file"] {
-            display: none;
-        }
-        .step {
-            transition: all 0.3s ease;
-        }
-        .step.active {
-            background-color: #3b82f6;
-            color: white;
-        }
-        .form-step {
-            display: none;
-        }
-        .form-step.active {
-            display: block;
-            animation: fadeIn 0.5s ease;
-        }
-        @keyframes fadeIn {
-            from { opacity: 0; transform: translateY(20px); }
-            to { opacity: 1; transform: translateY(0); }
-        }
-        .loading-spinner {
-            display: none;
-        }
-        .loading-spinner.active {
-            display: inline-block;
-            animation: spin 1s linear infinite;
-        }
-        @keyframes spin {
-            0% { transform: rotate(0deg); }
-            100% { transform: rotate(360deg); }
-        }
-
-        /* Mobile Menu Styles */
-        .hamburger {
-            transition: transform 0.3s ease;
-        }
-
-        .hamburger.open {
-            transform: rotate(90deg);
-        }
-
-        .hamburger-line {
-            transition: all 0.3s ease;
-        }
-
-        .hamburger.open .hamburger-line:nth-child(1) {
-            transform: rotate(45deg) translate(6px, 6px);
-        }
-
-        .hamburger.open .hamburger-line:nth-child(2) {
-            opacity: 0;
-        }
-
-        .hamburger.open .hamburger-line:nth-child(3) {
-            transform: rotate(-45deg) translate(6px, -6px);
-        }
-
-        .mobile-menu.fixed.top-0 {
-            transform: translateX(-100%);
-            transition: transform 0.3s ease;
-        }
-
-        .mobile-menu.fixed.top-0.open {
-            transform: translateX(0);
-        }
-
+    .file-upload input[type="file"] {
+      display: none;
+    }
+    .step {
+      transition: all 0.3s ease;
+    }
+    .step.active {
+      background-color: #3b82f6;
+      color: white;
+    }
+    .form-step {
+      display: none;
+    }
+    .form-step.active {
+      display: block;
+      animation: fadeIn 0.5s ease;
+    }
+    @keyframes fadeIn {
+      from { opacity: 0; transform: translateY(20px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+    .loading-spinner {
+      display: none;
+    }
+    .loading-spinner.active {
+      display: inline-block;
+      animation: spin 1s linear infinite;
+    }
+    @keyframes spin {
+      0% { transform: rotate(0deg); }
+      100% { transform: rotate(360deg); }
+    }
   </style>
 </head>
 <body class="font-sans bg-gray-200">
 
-    <!-- Navbar -->
-    <div class="bg-white bg-opacity-90 backdrop-blur-md text-gray-900 p-4 flex justify-between items-center z-50 border-b border-gray-200 relative">
-      <a href="index.html"><div class="flex items-center space-x-4">
-        <img src="assets/images/logo_edited-removebg-preview.png" alt="Park Pro Logo" class="h-20 w-15 object-contain" loading="lazy" />
-        <img src="assets/images/+-Photoroom.png" alt="Park Pro Logo" class="h-20 w-15 object-contain" loading="lazy" />
-      </div></a>
+  <!-- Navbar -->
+  <div class="bg-white bg-opacity-90 backdrop-blur-md text-gray-900 p-4 flex justify-between items-center z-50 border-b border-gray-200 relative">
+    <a href="index.html"><div class="flex items-center space-x-4">
+      <img src="assets/images/logo_edited-removebg-preview.png" alt="Park Pro Logo" class="h-20 w-15 object-contain" loading="lazy" />
+      <img src="assets/images/+-Photoroom.png" alt="Park Pro Logo" class="h-20 w-15 object-contain" loading="lazy" />
+    </div></a>
+    <nav class="space-x-6 hidden md:flex font-medium">
+      <a href="aboutus.html" class="option">About us</a>
+      <a href="business.html" class="option">Park Pro For Business</a>
+      <a href="products.html" class="option">Products</a>
+      <a href="contactus.html" class="option">Contact</a>
+    </nav>
+  </div>
 
-      <!-- Desktop Navigation -->
-      <nav class="space-x-6 hidden md:flex font-medium">
-        <a href="aboutus.html" class="option">About us</a>
-        <a href="business.html" class="option">Park Pro For Business</a>
-        <a href="products.html" class="option">Products</a>
-        <a href="contactus.html" class="option">Contact</a>
-      </nav>
+  <!-- FASTag ID Generation Form -->
+  <section class="py-16 bg-gray-50">
+    <div class="container mx-auto px-4">
+      <h2 class="text-3xl font-bold text-center mb-12" data-aos="fade-up">Apply for FASTag</h2>
 
-      <!-- Mobile Hamburger Button -->
-      <button class="hamburger md:hidden flex flex-col justify-center items-center w-8 h-8 relative z-50" aria-label="Toggle menu">
-        <span class="hamburger-line w-6 h-0.5 bg-gray-900 mb-1.5"></span>
-        <span class="hamburger-line w-6 h-0.5 bg-gray-900 mb-1.5"></span>
-        <span class="hamburger-line w-6 h-0.5 bg-gray-900"></span>
-      </button>
+      <!-- Steps Indicator -->
+      <div class="flex justify-center mb-12">
+        <div class="flex flex-col md:flex-row items-center">
+          <div class="step active rounded-full h-12 w-12 flex items-center justify-center border-2 border-blue-600 font-semibold mb-2 md:mb-0">
+            1
+          </div>
+          <div class="h-1 w-8 bg-blue-600 md:w-16 md:h-0 md:border-t-2 md:border-blue-600"></div>
+          <div class="step rounded-full h-12 w-12 flex items-center justify-center border-2 border-gray-300 font-semibold mb-2 md:mb-0">
+            2
+          </div>
+          <div class="h-1 w-8 bg-gray-300 md:w-16 md:h-0 md:border-t-2 md:border-gray-300"></div>
+          <div class="step rounded-full h-12 w-12 flex items-center justify-center border-2 border-gray-300 font-semibold">
+            3
+          </div>
+        </div>
+      </div>
 
-      <!-- Login/Profile Container (Desktop) -->
-      <div id="loginProfileContainer" class="relative inline-block md:flex space-x-4 items-center hidden">
-        <a href="userlogin.html" id="loginButton" class="bg-black font-bold text-white px-6 py-2 rounded-lg hover:opacity-90 transition transform hover:scale-110 duration-300">Login</a>
-        <a href="#" id="getAppButton" class="text-white rounded-lg px-6 py-2 cursor-pointer font-bold bg-black hover:bg-orange-600 transition transform hover:scale-110 duration-300">
-          Get the App
-        </a>
-        <div id="profileContainer" class="hidden relative">
-          <div id="profileAvatar" class="h-8 w-8 rounded-full bg-gray-300 text-gray-700 flex items-center justify-center font-semibold text-lg"></div>
-          <div id="profileDropdown" class="absolute right-0 mt-2 w-64 bg-white rounded-md shadow-lg py-4 z-20 opacity-0 invisible transform -translate-y-2 transition-all duration-300">
-            <div class="px-4 flex items-center space-x-4 border-b border-gray-200 pb-4">
-              <div id="dropdownAvatar" class="h-12 w-12 rounded-full bg-gray-300 text-gray-700 flex items-center justify-center font-semibold text-xl"></div>
-              <div>
-                <p class="font-semibold text-gray-900" id="userName">User</p>
-                <p class="text-sm text-gray-600" id="userEmail">user@example.com</p>
+      <!-- Form Steps -->
+      <div class="max-w-3xl mx-auto bg-white rounded-xl shadow-md overflow-hidden p-6 md:p-8" data-aos="fade-up">
+        <!-- Step 1: Personal Details -->
+        <div class="form-step active" id="step1">
+          <h3 class="text-2xl font-semibold mb-6">Personal Details</h3>
+          <div class="space-y-6">
+            <div>
+              <label for="fullName" class="block text-gray-700 mb-2">Full Name</label>
+              <input type="text" id="fullName" class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-600 focus:border-transparent" placeholder="Enter your full name">
+            </div>
+            <div>
+              <label for="mobile" class="block text-gray-700 mb-2">Mobile Number</label>
+              <div class="flex">
+                <input type="tel" id="mobile" class="w-full px-4 py-3 border border-gray-300 rounded-l-lg focus:ring-2 focus:ring-blue-600 focus:border-transparent" placeholder="Enter 10-digit mobile number">
+                <button class="bg-blue-600 text-white px-4 rounded-r-lg hover:bg-blue-700">Send OTP</button>
               </div>
             </div>
-            <button id="logoutButton" class="w-full text-left px-4 py-2 text-gray-800 hover:bg-gray-200 mt-4">Logout</button>
+            <div>
+              <label for="email" class="block text-gray-700 mb-2">Email Address</label>
+              <input type="email" id="email" class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-600 focus:border-transparent" placeholder="Enter your email">
+            </div>
+            <div class="flex justify-end">
+              <button class="next-step bg-blue-600 text-white px-8 py-3 rounded-lg hover:bg-blue-700 transition duration-300">Next <i class="fas fa-arrow-right ml-2"></i></button>
+            </div>
+          </div>
+        </div>
+
+        <!-- Step 2: Vehicle Details -->
+        <div class="form-step" id="step2">
+          <h3 class="text-2xl font-semibold mb-6">Vehicle Details</h3>
+          <div class="space-y-6">
+            <div>
+              <label for="vehicleNumber" class="block text-gray-700 mb-2">Vehicle Number</label>
+              <input type="text" id="vehicleNumber" class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-600 focus:border-transparent" placeholder="e.g. DL01AB1234">
+            </div>
+            <div>
+              <label for="vehicleType" class="block text-gray-700 mb-2">Vehicle Type</label>
+              <select id="vehicleType" class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-600 focus:border-transparent">
+                <option value="">Select Vehicle Type</option>
+                <option value="car">Car/Jeep/Van</option>
+                <option value="lcv">Light Commercial Vehicle</option>
+                <option value="bus">Bus/Truck</option>
+                <option value="3axle">3-Axle Vehicle</option>
+                <option value="4axle">4-Axle Vehicle</option>
+                <option value="heavy">Heavy Construction Machine</option>
+              </select>
+            </div>
+            <div>
+              <label class="block text-gray-700 mb-2">Vehicle RC Document</label>
+              <div class="file-upload">
+                <label for="rcUpload" class="cursor-pointer">
+                  <div class="border-2 border-dashed border-gray-300 rounded-lg p-4 text-center hover:border-blue-600 transition duration-300">
+                    <i class="fas fa-cloud-upload-alt text-3xl text-blue-600 mb-2"></i>
+                    <p class="text-gray-600">Click to upload RC document</p>
+                    <p class="text-sm text-gray-500 mt-1">PDF, JPG or PNG (Max 5MB)</p>
+                  </div>
+                </label>
+                <input type="file" id="rcUpload" accept=".pdf,.jpg,.jpeg,.png">
+                <div id="rcPreview" class="mt-2 hidden">
+                  <p class="text-sm text-green-600"><i class="fas fa-check-circle mr-1"></i> File uploaded</p>
+                </div>
+              </div>
+            </div>
+            <div class="flex justify-between">
+              <button class="prev-step bg-gray-200 text-gray-700 px-6 py-3 rounded-lg hover:bg-gray-300 transition duration-300">
+                <i class="fas fa-arrow-left mr-2"></i> Back
+              </button>
+              <button class="next-step bg-blue-600 text-white px-8 py-3 rounded-lg hover:bg-blue-700 transition duration-300">Next <i class="fas fa-arrow-right ml-2"></i></button>
+            </div>
+          </div>
+        </div>
+
+        <!-- Step 3: Submission -->
+        <div class="form-step" id="step3">
+          <h3 class="text-2xl font-semibold mb-6">Complete Your Application</h3>
+          <div class="space-y-6">
+            <div>
+              <label class="block text-gray-700 mb-2">ID Proof (Aadhaar/Driving License/Passport)</label>
+              <div class="file-upload">
+                <label for="idProof" class="cursor-pointer">
+                  <div class="border-2 border-dashed border-gray-300 rounded-lg p-4 text-center hover:border-blue-600 transition duration-300">
+                    <i class="fas fa-cloud-upload-alt text-3xl text-blue-600 mb-2"></i>
+                    <p class="text-gray-600">Click to upload ID proof</p>
+                    <p class="text-sm text-gray-500 mt-1">PDF, JPG or PNG (Max 5MB)</p>
+                  </div>
+                </label>
+                <input type="file" id="idProof" accept=".pdf,.jpg,.jpeg,.png">
+                <div id="idProofPreview" class="mt-2 hidden">
+                  <p class="text-sm text-green-600"><i class="fas fa-check-circle mr-1"></i> File uploaded</p>
+                </div>
+              </div>
+            </div>
+            <div>
+              <label for="address" class="block text-gray-700 mb-2">Delivery Address</label>
+              <textarea id="address" rows="4" class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-600 focus:border-transparent" placeholder="Enter your complete address for FASTag delivery"></textarea>
+            </div>
+            <div class="flex justify-between">
+              <button class="prev-step bg-gray-200 text-gray-700 px-6 py-3 rounded-lg hover:bg-gray-300 transition duration-300">
+                <i class="fas fa-arrow-left mr-2"></i> Back
+              </button>
+              <button id="submitBtn" class="bg-blue-600 text-white px-8 py-3 rounded-lg hover:bg-blue-700 transition duration-300">
+                <span id="submitText">Submit Application</span>
+                <i class="fas fa-spinner loading-spinner ml-2"></i>
+              </button>
+            </div>
           </div>
         </div>
       </div>
     </div>
+  </section>
 
-    <!-- Mobile Menu Overlay -->
-    <div class="mobile-menu-overlay fixed inset-0 bg-black bg-opacity-50 z-40 md:hidden" style="display: none;"></div>
-
-    <!-- Mobile Navigation Menu -->
-    <nav class="mobile-menu fixed top-0 left-0 h-full w-64 bg-white shadow-lg z-50 p-6 md:hidden">
-      <div class="flex flex-col space-y-6 mt-16">
-        <a href="aboutus.html" class="option text-lg font-medium">About us</a>
-        <a href="business.html" class="option text-lg font-medium">Park Pro For Business</a>
-        <a href="products.html" class="option text-lg font-medium">Products</a>
-        <a href="contactus.html" class="option text-lg font-medium">Contact</a>
-
-        <!-- Mobile Login/Get App Buttons -->
-        <div class="pt-6 border-t border-gray-200">
-          <a href="userlogin.html" class="bg-black font-bold text-white px-6 py-3 rounded-lg hover:opacity-90 transition block text-center mb-4">Login</a>
-          <a href="#" class="text-white rounded-lg px-6 py-3 cursor-pointer font-bold bg-black hover:bg-orange-600 transition block text-center">
-            Get the App
-          </a>
-        </div>
-      </div>
-    </nav>
-    <script src="js/index.js"></script>
-    <script src="js/cardToggle.js"></script>
-    <script src="js/registerSpot.js"></script>
-
-     <!-- Hero Section Removed -->
-
-    <!-- Why FASTag Section -->
-    <section class="py-16 bg-white">
-        <div class="container mx-auto px-4">
-            <h2 class="text-3xl font-bold text-center mb-12" data-aos="fade-up">Get FASTag?</h2>
-            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8">
-                <!-- Feature 1 -->
-                <div class="bg-gray-50 p-6 rounded-xl shadow-sm hover:shadow-md transition duration-300" data-aos="fade-up" data-aos-delay="100">
-                    <div class="text-blue-600 mb-4">
-                        <i class="fas fa-bolt text-3xl"></i>
-                    </div>
-                    <h3 class="text-xl font-semibold mb-2">Automatic Payments</h3>
-                    <p class="text-gray-600">Automatic toll & parking payments without stopping your vehicle.</p>
-                </div>
-                <!-- Feature 2 -->
-                <div class="bg-gray-50 p-6 rounded-xl shadow-sm hover:shadow-md transition duration-300" data-aos="fade-up" data-aos-delay="200">
-                    <div class="text-blue-600 mb-4">
-                        <i class="fas fa-wallet text-3xl"></i>
-                    </div>
-                    <h3 class="text-xl font-semibold mb-2">No Cash Hassle</h3>
-                    <p class="text-gray-600">Go cashless and avoid carrying change for toll payments.</p>
-                </div>
-                <!-- Feature 3 -->
-                <div class="bg-gray-50 p-6 rounded-xl shadow-sm hover:shadow-md transition duration-300" data-aos="fade-up" data-aos-delay="300">
-                    <div class="text-blue-600 mb-4">
-                        <i class="fas fa-mobile-alt text-3xl"></i>
-                    </div>
-                    <h3 class="text-xl font-semibold mb-2">Instant Recharge</h3>
-                    <p class="text-gray-600">Recharge your balance instantly and check transactions anytime.</p>
-                </div>
-                <!-- Feature 4 -->
-                <div class="bg-gray-50 p-6 rounded-xl shadow-sm hover:shadow-md transition duration-300" data-aos="fade-up" data-aos-delay="400">
-                    <div class="text-blue-600 mb-4">
-                        <i class="fas fa-map-marker-alt text-3xl"></i>
-                    </div>
-                    <h3 class="text-xl font-semibold mb-2">Nationwide Acceptance</h3>
-                    <p class="text-gray-600">Accepted at all toll plazas and partner parking across India.</p>
-                </div>
-            </div>
-        </div>
-    </section>
-
-    <!-- Application Form -->
-    <section class="py-16 bg-gray-50">
-        <div class="container mx-auto px-4">
-            <h2 class="text-3xl font-bold text-center mb-12" data-aos="fade-up">Apply for FASTag</h2>
-            
-            <!-- Steps Indicator -->
-            <div class="flex justify-center mb-12">
-                <div class="flex flex-col md:flex-row items-center">
-                    <div class="step active rounded-full h-12 w-12 flex items-center justify-center border-2 border-blue-600 font-semibold mb-2 md:mb-0">
-                        1
-                    </div>
-                    <div class="h-1 w-8 bg-blue-600 md:w-16 md:h-0 md:border-t-2 md:border-blue-600"></div>
-                    <div class="step rounded-full h-12 w-12 flex items-center justify-center border-2 border-gray-300 font-semibold mb-2 md:mb-0">
-                        2
-                    </div>
-                    <div class="h-1 w-8 bg-gray-300 md:w-16 md:h-0 md:border-t-2 md:border-gray-300"></div>
-                    <div class="step rounded-full h-12 w-12 flex items-center justify-center border-2 border-gray-300 font-semibold">
-                        3
-                    </div>
-                </div>
-            </div>
-            
-            <!-- Form Steps -->
-            <div class="max-w-3xl mx-auto bg-white rounded-xl shadow-md overflow-hidden p-6 md:p-8" data-aos="fade-up">
-                <!-- Step 1: Personal Details -->
-                <div class="form-step active" id="step1">
-                    <h3 class="text-2xl font-semibold mb-6">Personal Details</h3>
-                    <div class="space-y-6">
-                        <div>
-                            <label for="fullName" class="block text-gray-700 mb-2">Full Name</label>
-                            <input type="text" id="fullName" class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-600 focus:border-transparent" placeholder="Enter your full name">
-                        </div>
-                        <div>
-                            <label for="mobile" class="block text-gray-700 mb-2">Mobile Number</label>
-                            <div class="flex">
-                                <input type="tel" id="mobile" class="w-full px-4 py-3 border border-gray-300 rounded-l-lg focus:ring-2 focus:ring-blue-600 focus:border-transparent" placeholder="Enter 10-digit mobile number">
-                                <button class="bg-blue-600 text-white px-4 rounded-r-lg hover:bg-blue-700">Send OTP</button>
-                            </div>
-                        </div>
-                        <div>
-                            <label for="email" class="block text-gray-700 mb-2">Email Address</label>
-                            <input type="email" id="email" class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-600 focus:border-transparent" placeholder="Enter your email">
-                        </div>
-                        <div class="flex justify-end">
-                            <button class="next-step bg-blue-600 text-white px-8 py-3 rounded-lg hover:bg-blue-700 transition duration-300">Next <i class="fas fa-arrow-right ml-2"></i></button>
-                        </div>
-                    </div>
-                </div>
-                
-                <!-- Step 2: Vehicle Details -->
-                <div class="form-step" id="step2">
-                    <h3 class="text-2xl font-semibold mb-6">Vehicle Details</h3>
-                    <div class="space-y-6">
-                        <div>
-                            <label for="vehicleNumber" class="block text-gray-700 mb-2">Vehicle Number</label>
-                            <input type="text" id="vehicleNumber" class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-600 focus:border-transparent" placeholder="e.g. DL01AB1234">
-                        </div>
-                        <div>
-                            <label for="vehicleType" class="block text-gray-700 mb-2">Vehicle Type</label>
-                            <select id="vehicleType" class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-600 focus:border-transparent">
-                                <option value="">Select Vehicle Type</option>
-                                <option value="car">Car/Jeep/Van</option>
-                                <option value="lcv">Light Commercial Vehicle</option>
-                                <option value="bus">Bus/Truck</option>
-                                <option value="3axle">3-Axle Vehicle</option>
-                                <option value="4axle">4-Axle Vehicle</option>
-                                <option value="heavy">Heavy Construction Machine</option>
-                            </select>
-                        </div>
-                        <div>
-                            <label class="block text-gray-700 mb-2">Vehicle RC Document</label>
-                            <div class="file-upload">
-                                <label for="rcUpload" class="cursor-pointer">
-                                    <div class="border-2 border-dashed border-gray-300 rounded-lg p-4 text-center hover:border-blue-600 transition duration-300">
-                                        <i class="fas fa-cloud-upload-alt text-3xl text-blue-600 mb-2"></i>
-                                        <p class="text-gray-600">Click to upload RC document</p>
-                                        <p class="text-sm text-gray-500 mt-1">PDF, JPG or PNG (Max 5MB)</p>
-                                    </div>
-                                </label>
-                                <input type="file" id="rcUpload" accept=".pdf,.jpg,.jpeg,.png">
-                                <div id="rcPreview" class="mt-2 hidden">
-                                    <p class="text-sm text-green-600"><i class="fas fa-check-circle mr-1"></i> File uploaded</p>
-                                </div>
-                            </div>
-                        </div>
-                        <div class="flex justify-between">
-                            <button class="prev-step bg-gray-200 text-gray-700 px-6 py-3 rounded-lg hover:bg-gray-300 transition duration-300">
-                                <i class="fas fa-arrow-left mr-2"></i> Back
-                            </button>
-                            <button class="next-step bg-blue-600 text-white px-8 py-3 rounded-lg hover:bg-blue-700 transition duration-300">Next <i class="fas fa-arrow-right ml-2"></i></button>
-                        </div>
-                    </div>
-                </div>
-                
-                <!-- Step 3: Payment & Submission -->
-                <div class="form-step" id="step3">
-                    <h3 class="text-2xl font-semibold mb-6">Complete Your Application</h3>
-                    <div class="space-y-6">
-                        <div>
-                            <label class="block text-gray-700 mb-2">ID Proof (Aadhaar/Driving License/Passport)</label>
-                            <div class="file-upload">
-                                <label for="idProof" class="cursor-pointer">
-                                    <div class="border-2 border-dashed border-gray-300 rounded-lg p-4 text-center hover:border-blue-600 transition duration-300">
-                                        <i class="fas fa-cloud-upload-alt text-3xl text-blue-600 mb-2"></i>
-                                        <p class="text-gray-600">Click to upload ID proof</p>
-                                        <p class="text-sm text-gray-500 mt-1">PDF, JPG or PNG (Max 5MB)</p>
-                                    </div>
-                                </label>
-                                <input type="file" id="idProof" accept=".pdf,.jpg,.jpeg,.png">
-                                <div id="idProofPreview" class="mt-2 hidden">
-                                    <p class="text-sm text-green-600"><i class="fas fa-check-circle mr-1"></i> File uploaded</p>
-                                </div>
-                            </div>
-                        </div>
-                        <div>
-                            <label for="address" class="block text-gray-700 mb-2">Delivery Address</label>
-                            <textarea id="address" rows="4" class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-600 focus:border-transparent" placeholder="Enter your complete address for FASTag delivery"></textarea>
-                        </div>
-                        <div>
-                            <label class="block text-gray-700 mb-2">Select Payment Method</label>
-                            <div class="grid grid-cols-3 gap-4">
-                                <label class="border border-gray-300 rounded-lg p-4 flex items-center cursor-pointer hover:border-blue-600">
-                                    <input type="radio" name="payment" class="mr-2" checked>
-                                    <i class="fas fa-credit-card text-2xl text-blue-600 mr-2"></i>
-                                    <span>Card</span>
-                                </label>
-                                <label class="border border-gray-300 rounded-lg p-4 flex items-center cursor-pointer hover:border-blue-600">
-                                    <input type="radio" name="payment" class="mr-2">
-                                    <i class="fas fa-university text-2xl text-blue-600 mr-2"></i>
-                                    <span>Net Banking</span>
-                                </label>
-                                <label class="border border-gray-300 rounded-lg p-4 flex items-center cursor-pointer hover:border-blue-600">
-                                    <input type="radio" name="payment" class="mr-2">
-                                    <i class="fas fa-mobile-alt text-2xl text-blue-600 mr-2"></i>
-                                    <span>UPI</span>
-                                </label>
-                            </div>
-                        </div>
-                        <div class="flex justify-between">
-                            <button class="prev-step bg-gray-200 text-gray-700 px-6 py-3 rounded-lg hover:bg-gray-300 transition duration-300">
-                                <i class="fas fa-arrow-left mr-2"></i> Back
-                            </button>
-                            <button id="submitBtn" class="bg-blue-600 text-white px-8 py-3 rounded-lg hover:bg-blue-700 transition duration-300">
-                                <span id="submitText">Submit & Pay ₹100</span>
-                                <i class="fas fa-spinner loading-spinner ml-2"></i>
-                            </button>
-                        </div>
-                    </div>
-                </div>
-            </div>
-        </div>
-    </section>
-
-    <!-- Pricing Plans -->
-    <section class="py-16 bg-white">
-        <div class="container mx-auto px-4">
-            <h2 class="text-3xl font-bold text-center mb-12" data-aos="fade-up">FASTag Plans</h2>
-            <div class="grid grid-cols-1 md:grid-cols-3 gap-8 max-w-5xl mx-auto">
-                <!-- Standard Plan -->
-                <div class="border border-gray-200 rounded-xl overflow-hidden shadow-sm hover:shadow-md transition duration-300" data-aos="fade-up" data-aos-delay="100">
-                    <div class="bg-blue-50 p-6 text-center">
-                        <h3 class="text-xl font-semibold mb-2">Standard FASTag</h3>
-                        <p class="text-3xl font-bold text-blue-600">₹100</p>
-                        <p class="text-gray-600">One-time fee</p>
-                    </div>
-                    <div class="p-6">
-                        <ul class="space-y-3">
-                            <li class="flex items-start">
-                                <i class="fas fa-check text-green-500 mt-1 mr-2"></i>
-                                <span>Valid for 5 years</span>
-                            </li>
-                            <li class="flex items-start">
-                                <i class="fas fa-check text-green-500 mt-1 mr-2"></i>
-                                <span>All toll plazas acceptance</span>
-                            </li>
-                            <li class="flex items-start">
-                                <i class="fas fa-check text-green-500 mt-1 mr-2"></i>
-                                <span>Basic customer support</span>
-                            </li>
-                            <li class="flex items-start">
-                                <i class="fas fa-check text-green-500 mt-1 mr-2"></i>
-                                <span>Standard delivery (5-7 days)</span>
-                            </li>
-                        </ul>
-                        <button class="w-full mt-6 bg-blue-600 text-white py-3 rounded-lg hover:bg-blue-700 transition duration-300">Choose Plan</button>
-                    </div>
-                </div>
-                
-                <!-- Premium Plan -->
-                <div class="border-2 border-blue-600 rounded-xl overflow-hidden shadow-md transform hover:scale-105 transition duration-300" data-aos="fade-up">
-                    <div class="bg-blue-600 text-white p-6 text-center">
-                        <div class="absolute top-0 right-0 bg-yellow-400 text-blue-800 px-3 py-1 text-sm font-bold rounded-bl-lg">POPULAR</div>
-                        <h3 class="text-xl font-semibold mb-2">Premium FASTag</h3>
-                        <p class="text-3xl font-bold">₹200</p>
-                        <p class="opacity-90">One-time fee</p>
-                    </div>
-                    <div class="p-6">
-                        <ul class="space-y-3">
-                            <li class="flex items-start">
-                                <i class="fas fa-check text-green-500 mt-1 mr-2"></i>
-                                <span>Valid for 5 years</span>
-                            </li>
-                            <li class="flex items-start">
-                                <i class="fas fa-check text-green-500 mt-1 mr-2"></i>
-                                <span>All toll plazas + partner parking</span>
-                            </li>
-                            <li class="flex items-start">
-                                <i class="fas fa-check text-green-500 mt-1 mr-2"></i>
-                                <span>Priority customer support</span>
-                            </li>
-                            <li class="flex items-start">
-                                <i class="fas fa-check text-green-500 mt-1 mr-2"></i>
-                                <span>Express delivery (2-3 days)</span>
-                            </li>
-                            <li class="flex items-start">
-                                <i class="fas fa-check text-green-500 mt-1 mr-2"></i>
-                                <span>₹50 parking credit bonus</span>
-                            </li>
-                        </ul>
-                        <button class="w-full mt-6 bg-blue-600 text-white py-3 rounded-lg hover:bg-blue-700 transition duration-300">Choose Plan</button>
-                    </div>
-                </div>
-                
-                <!-- Corporate Plan -->
-                <div class="border border-gray-200 rounded-xl overflow-hidden shadow-sm hover:shadow-md transition duration-300" data-aos="fade-up" data-aos-delay="100">
-                    <div class="bg-blue-50 p-6 text-center">
-                        <h3 class="text-xl font-semibold mb-2">Corporate FASTag</h3>
-                        <p class="text-3xl font-bold text-blue-600">₹500</p>
-                        <p class="text-gray-600">One-time fee</p>
-                    </div>
-                    <div class="p-6">
-                        <ul class="space-y-3">
-                            <li class="flex items-start">
-                                <i class="fas fa-check text-green-500 mt-1 mr-2"></i>
-                                <span>Valid for 5 years</span>
-                            </li>
-                            <li class="flex items-start">
-                                <i class="fas fa-check text-green-500 mt-1 mr-2"></i>
-                                <span>All toll plazas + partner parking</span>
-                            </li>
-                            <li class="flex items-start">
-                                <i class="fas fa-check text-green-500 mt-1 mr-2"></i>
-                                <span>Dedicated account manager</span>
-                            </li>
-                            <li class="flex items-start">
-                                <i class="fas fa-check text-green-500 mt-1 mr-2"></i>
-                                <span>Same-day delivery (select cities)</span>
-                            </li>
-                            <li class="flex items-start">
-                                <i class="fas fa-check text-green-500 mt-1 mr-2"></i>
-                                <span>Bulk vehicle management</span>
-                            </li>
-                            <li class="flex items-start">
-                                <i class="fas fa-check text-green-500 mt-1 mr-2"></i>
-                                <span>₹200 parking credit bonus</span>
-                            </li>
-                        </ul>
-                        <button class="w-full mt-6 bg-blue-600 text-white py-3 rounded-lg hover:bg-blue-700 transition duration-300">Choose Plan</button>
-                    </div>
-                </div>
-            </div>
-        </div>
-    </section>
-
-    <!-- Process Timeline -->
-    <section class="py-16 bg-gray-50">
-        <div class="container mx-auto px-4">
-            <h2 class="text-3xl font-bold text-center mb-12" data-aos="fade-up">How It Works</h2>
-            <div class="max-w-4xl mx-auto">
-                <div class="relative">
-                    <!-- Timeline line -->
-                    <div class="hidden md:block absolute top-1/2 left-0 right-0 h-1 bg-gray-200 transform -translate-y-1/2"></div>
-                    
-                    <div class="grid grid-cols-1 md:grid-cols-5 gap-8">
-                        <!-- Step 1 -->
-                        <div class="text-center" data-aos="fade-up" data-aos-delay="100">
-                            <div class="mx-auto bg-blue-600 text-white rounded-full h-16 w-16 flex items-center justify-center mb-4 relative z-10">
-                                <i class="fas fa-mobile-alt text-2xl"></i>
-                            </div>
-                            <h3 class="font-semibold mb-2">1. Apply Online</h3>
-                            <p class="text-gray-600 text-sm">Fill the application form with your details</p>
-                        </div>
-                        
-                        <!-- Step 2 -->
-                        <div class="text-center" data-aos="fade-up" data-aos-delay="200">
-                            <div class="mx-auto bg-blue-600 text-white rounded-full h-16 w-16 flex items-center justify-center mb-4 relative z-10">
-                                <i class="fas fa-file-upload text-2xl"></i>
-                            </div>
-                            <h3 class="font-semibold mb-2">2. Verify Documents</h3>
-                            <p class="text-gray-600 text-sm">Upload RC and ID proof for verification</p>
-                        </div>
-                        
-                        <!-- Step 3 -->
-                        <div class="text-center" data-aos="fade-up" data-aos-delay="300">
-                            <div class="mx-auto bg-blue-600 text-white rounded-full h-16 w-16 flex items-center justify-center mb-4 relative z-10">
-                                <i class="fas fa-rupee-sign text-2xl"></i>
-                            </div>
-                            <h3 class="font-semibold mb-2">3. Make Payment</h3>
-                            <p class="text-gray-600 text-sm">Pay for your FASTag securely online</p>
-                        </div>
-                        
-                        <!-- Step 4 -->
-                        <div class="text-center" data-aos="fade-up" data-aos-delay="400">
-                            <div class="mx-auto bg-blue-600 text-white rounded-full h-16 w-16 flex items-center justify-center mb-4 relative z-10">
-                                <i class="fas fa-truck text-2xl"></i>
-                            </div>
-                            <h3 class="font-semibold mb-2">4. FASTag Delivered</h3>
-                            <p class="text-gray-600 text-sm">Get FASTag delivered to your address</p>
-                        </div>
-                        
-                        <!-- Step 5 -->
-                        <div class="text-center" data-aos="fade-up" data-aos-delay="500">
-                            <div class="mx-auto bg-blue-600 text-white rounded-full h-16 w-16 flex items-center justify-center mb-4 relative z-10">
-                                <i class="fas fa-check-circle text-2xl"></i>
-                            </div>
-                            <h3 class="font-semibold mb-2">5. Activate & Use</h3>
-                            <p class="text-gray-600 text-sm">Activate and start using at toll plazas</p>
-                        </div>
-                    </div>
-                </div>
-            </div>
-        </div>
-    </section>
-
-    <!-- FAQs -->
-    <section class="py-16 bg-white">
-        <div class="container mx-auto px-4 max-w-4xl">
-            <h2 class="text-3xl font-bold text-center mb-12" data-aos="fade-up">Frequently Asked Questions</h2>
-            
-            <div class="space-y-4" data-aos="fade-up">
-                <!-- FAQ 1 -->
-                <div class="border border-gray-200 rounded-lg overflow-hidden">
-                    <button class="faq-toggle w-full flex justify-between items-center p-4 bg-gray-50 hover:bg-gray-100 transition duration-300">
-                        <h3 class="text-lg font-medium text-left">How long does it take to get my FASTag after application?</h3>
-                        <i class="fas fa-chevron-down transition-transform duration-300"></i>
-                    </button>
-                    <div class="faq-content hidden p-4 bg-white">
-                        <p class="text-gray-600">Standard delivery takes 5-7 business days. For Premium FASTag, delivery is within 2-3 business days. Corporate customers in select cities can avail same-day delivery.</p>
-                    </div>
-                </div>
-                
-                <!-- FAQ 2 -->
-                <div class="border border-gray-200 rounded-lg overflow-hidden">
-                    <button class="faq-toggle w-full flex justify-between items-center p-4 bg-gray-50 hover:bg-gray-100 transition duration-300">
-                        <h3 class="text-lg font-medium text-left">What documents are required for FASTag application?</h3>
-                        <i class="fas fa-chevron-down transition-transform duration-300"></i>
-                    </button>
-                    <div class="faq-content hidden p-4 bg-white">
-                        <p class="text-gray-600">You need to provide:<br>
-                        1. Vehicle Registration Certificate (RC)<br>
-                        2. ID Proof (Aadhaar, Driving License, or Passport)<br>
-                        3. Passport size photograph (for some vehicle categories)</p>
-                    </div>
-                </div>
-                
-                <!-- FAQ 3 -->
-                <div class="border border-gray-200 rounded-lg overflow-hidden">
-                    <button class="faq-toggle w-full flex justify-between items-center p-4 bg-gray-50 hover:bg-gray-100 transition duration-300">
-                        <h3 class="text-lg font-medium text-left">How do I recharge my FASTag balance?</h3>
-                        <i class="fas fa-chevron-down transition-transform duration-300"></i>
-                    </button>
-                    <div class="faq-content hidden p-4 bg-white">
-                        <p class="text-gray-600">You can recharge your FASTag balance through:<br>
-                        1. Our website or mobile app (UPI/Card/Net Banking)<br>
-                        2. Partner banks and payment apps<br>
-                        3. At select toll plazas and petrol pumps</p>
-                    </div>
-                </div>
-                
-                <!-- FAQ 4 -->
-                <div class="border border-gray-200 rounded-lg overflow-hidden">
-                    <button class="faq-toggle w-full flex justify-between items-center p-4 bg-gray-50 hover:bg-gray-100 transition duration-300">
-                        <h3 class="text-lg font-medium text-left">Can I use one FASTag for multiple vehicles?</h3>
-                        <i class="fas fa-chevron-down transition-transform duration-300"></i>
-                    </button>
-                    <div class="faq-content hidden p-4 bg-white">
-                        <p class="text-gray-600">No, each FASTag is linked to a specific vehicle's registration number and cannot be transferred or shared between vehicles. Corporate plans allow management of multiple vehicles under one account.</p>
-                    </div>
-                </div>
-                
-                <!-- FAQ 5 -->
-                <div class="border border-gray-200 rounded-lg overflow-hidden">
-                    <button class="faq-toggle w-full flex justify-between items-center p-4 bg-gray-50 hover:bg-gray-100 transition duration-300">
-                        <h3 class="text-lg font-medium text-left">What if my FASTag gets damaged or stops working?</h3>
-                        <i class="fas fa-chevron-down transition-transform duration-300"></i>
-                    </button>
-                    <div class="faq-content hidden p-4 bg-white">
-                        <p class="text-gray-600">In case of damage or malfunction, you can request for a replacement FASTag through your account dashboard. Replacement charges may apply depending on your plan and warranty period.</p>
-                    </div>
-                </div>
-            </div>
-        </div>
-    </section>
-
-      <!-- Footer -->
-<footer class="bg-[#46949d] text-white py-12">
-  <div class="container mx-auto px-6 lg:px-12">
-    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-10">
-      
-      <!-- Company Info -->
-      <div>
-        <div class="flex items-center mb-4">
-          <img src="assets/images/logo_edited-removebg-preview.png" alt="Logo" class="h-14 w-auto mr-3">
-          <span class="text-2xl font-extrabold tracking-wide">ParkPro+</span>
-        </div>
-        <p class="text-black leading-relaxed mb-6">
-          Your smart companion for parking anywhere, anytime.  
-          Find, reserve, and park with ease — powered by smart technology.
-        </p>
-        <div class="flex space-x-4 text-lg">
-          <a href="#" class="p-2 bg-white/20 rounded-full hover:bg-white hover:text-[#46949d] transition" style="width: 40px;">
-            <center><i class="fab fa-facebook-f"></i></center>
-          </a>
-          <a href="#" class="p-2 bg-white/20 rounded-full hover:bg-white hover:text-[#46949d] transition" style="width: 40px;">
-            <center><i class="fab fa-twitter"></i></center>
-          </a>
-          <a href="#" class="p-2 bg-white/20 rounded-full hover:bg-white hover:text-[#46949d] transition" style="width: 40px;">
-           <center> <i class="fab fa-instagram"></i></center>
-          </a>
-          <a href="#" class="p-2 bg-white/20 rounded-full hover:bg-white hover:text-[#46949d] transition" style="width: 40px;">
-            <center><i class="fab fa-linkedin-in"></i></center>
-          </a>
-        </div>
-      </div>
-
-      <!-- Quick Links -->
-      <div>
-        <h4 class="text-lg font-semibold mb-4 border-b border-white/40 pb-2">Quick Links</h4>
-        <ul class="space-y-2">
-          <li><a href="index.html" class="text-black hover:text-white transition duration-200">Home</a></li>
-          <li><a href="service.html" class="text-black hover:text-white transition duration-200">FASTag Services</a></li>
-          <li><a href="fastag.html" class="text-black hover:text-white transition duration-200">Recharge FASTag</a></li>
-          <li><a href="fastag.html" class="text-black hover:text-white transition duration-200">Transaction History</a></li>
-          <li><a href="userprofile.html" class="text-black hover:text-white transition duration-200">My Account</a></li>
-        </ul>
-      </div>
-
-      <!-- Support -->
-      <div>
-        <h4 class="text-lg font-semibold mb-4 border-b border-white/40 pb-2">Support</h4>
-        <ul class="space-y-2">
-          <li><a href="#" class="text-black hover:text-white transition duration-200">FAQs</a></li>
-          <li><a href="contactus.html" class="text-black hover:text-white transition duration-200">Contact Us</a></li>
-          <li><a href="#" class="text-black hover:text-white transition duration-200">Privacy Policy</a></li>
-          <li><a href="#" class="text-black hover:text-white transition duration-200">Terms of Service</a></li>
-          <li><a href="#" class="text-black hover:text-white transition duration-200">Refund Policy</a></li>
-        </ul>
-      </div>
-
-      <!-- Contact Info -->
-      <div>
-        <h4 class="text-lg font-semibold mb-4 border-b border-white/40 pb-2">Contact Us</h4>
-        <ul class="space-y-3 text-black">
-          <li class="flex items-start">
-            <i class="fas fa-map-marker-alt mt-1 mr-3 text-white"></i>
-            <span>MRD Block - PES University, Bangalore, Karnataka 560001</span>
-          </li>
-          <li class="flex items-center">
-            <i class="fas fa-phone-alt mr-3 text-white"></i>
-            <span>+91 8309113119</span>
-          </li>
-          <li class="flex items-center">
-            <i class="fas fa-envelope mr-3 text-white"></i>
-            <a href="https://mail.google.com/mail/?view=cm&fs=1&to=parkproplus@gmail.com&su=Parking%20Inquiry&body=Hello,%20I%20would%20like%20to%20know%20more%20about..." target="_blank">
-              parkproplus@gmail.com
-            </a>
-            
-          </li>
-          
-        </ul>
-      </div>
-
-    </div>
-
-    <!-- Bottom Footer -->
-    <div class="border-t border-white/40 mt-10 pt-6 text-center">
-      <p class="text-sm text-white/80">&copy; 2025 ParkPro+. All rights reserved.</p>
-    </div>
-  </div>
-</footer>
-
-    <!-- Scripts -->
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.11.4/gsap.min.js"></script>
-    <script src="https://unpkg.com/aos@2.3.1/dist/aos.js"></script>
-    <script>
-        // Initialize AOS animation library
-        AOS.init({
-            duration: 800,
-            easing: 'ease-in-out',
-            once: true
-        });
-        
-        // Form step navigation
-        document.addEventListener('DOMContentLoaded', function() {
-            const steps = document.querySelectorAll('.step');
-            const formSteps = document.querySelectorAll('.form-step');
-            const nextButtons = document.querySelectorAll('.next-step');
-            const prevButtons = document.querySelectorAll('.prev-step');
-            const submitBtn = document.getElementById('submitBtn');
-            const submitText = document.getElementById('submitText');
-            const loadingSpinner = document.querySelector('.loading-spinner');
-            
-            let currentStep = 0;
-            
-            // Show current step
-            function showStep(stepIndex) {
-                // Hide all steps
-                formSteps.forEach(step => step.classList.remove('active'));
-                steps.forEach(step => step.classList.remove('active'));
-                
-                // Show current step
-                formSteps[stepIndex].classList.add('active');
-                
-                // Update step indicators
-                for (let i = 0; i <= stepIndex; i++) {
-                    steps[i].classList.add('active');
-                }
-            }
-            
-            // Next button click
-            nextButtons.forEach(button => {
-                button.addEventListener('click', function(e) {
-                    e.preventDefault();
-                    
-                    // Validate current step before proceeding
-                    if (validateStep(currentStep)) {
-                        if (currentStep < formSteps.length - 1) {
-                            currentStep++;
-                            showStep(currentStep);
-                        }
-                    }
-                });
-            });
-            
-            // Previous button click
-            prevButtons.forEach(button => {
-                button.addEventListener('click', function(e) {
-                    e.preventDefault();
-                    
-                    if (currentStep > 0) {
-                        currentStep--;
-                        showStep(currentStep);
-                    }
-                });
-            });
-            
-            // Form submission
-            submitBtn.addEventListener('click', function(e) {
-                e.preventDefault();
-                
-                if (validateStep(currentStep)) {
-                    // Show loading state
-                    submitText.textContent = "Processing...";
-                    loadingSpinner.classList.add('active');
-                    
-                    // Simulate form submission
-                    setTimeout(function() {
-                        // Reset button state
-                        submitText.textContent = "Submitted Successfully!";
-                        loadingSpinner.classList.remove('active');
-                        
-                        // Show success message or redirect
-                        alert("Your FASTag application has been submitted successfully!");
-                    }, 2000);
-                }
-            });
-            
-            // File upload preview
-            document.getElementById('rcUpload').addEventListener('change', function(e) {
-                if (e.target.files.length > 0) {
-                    document.getElementById('rcPreview').classList.remove('hidden');
-                }
-            });
-            
-            document.getElementById('idProof').addEventListener('change', function(e) {
-                if (e.target.files.length > 0) {
-                    document.getElementById('idProofPreview').classList.remove('hidden');
-                }
-            });
-            
-            // FAQ toggle
-            document.querySelectorAll('.faq-toggle').forEach(button => {
-                button.addEventListener('click', function() {
-                    const content = this.nextElementSibling;
-                    const icon = this.querySelector('i');
-                    
-                    content.classList.toggle('hidden');
-                    icon.classList.toggle('transform');
-                    icon.classList.toggle('rotate-180');
-                });
-            });
-            
-            // Simple form validation
-            function validateStep(stepIndex) {
-                let isValid = true;
-                
-                if (stepIndex === 0) {
-                    const fullName = document.getElementById('fullName').value;
-                    const mobile = document.getElementById('mobile').value;
-                    const email = document.getElementById('email').value;
-                    
-                    if (!fullName.trim()) {
-                        alert("Please enter your full name");
-                        isValid = false;
-                    } else if (!mobile.match(/^[0-9]{10}$/)) {
-                        alert("Please enter a valid 10-digit mobile number");
-                        isValid = false;
-                    } else if (!email.match(/^[^\s@]+@[^\s@]+\.[^\s@]+$/)) {
-                        alert("Please enter a valid email address");
-                        isValid = false;
-                    }
-                } else if (stepIndex === 1) {
-                    const vehicleNumber = document.getElementById('vehicleNumber').value;
-                    const vehicleType = document.getElementById('vehicleType').value;
-                    
-                    if (!vehicleNumber.trim()) {
-                        alert("Please enter your vehicle number");
-                        isValid = false;
-                    } else if (!vehicleType) {
-                        alert("Please select your vehicle type");
-                        isValid = false;
-                    }
-                }
-                
-                return isValid;
-            }
-        });
-
-  <!-- Mobile Navigation JavaScript -->
-  
+  <script>
     document.addEventListener('DOMContentLoaded', function() {
-      const hamburger = document.querySelector('.hamburger');
-      const mobileMenuOverlay = document.querySelector('.mobile-menu-overlay');
-      const mobileNav = document.querySelector('.mobile-menu.fixed.top-0');
+      const steps = document.querySelectorAll('.step');
+      const formSteps = document.querySelectorAll('.form-step');
+      const nextButtons = document.querySelectorAll('.next-step');
+      const prevButtons = document.querySelectorAll('.prev-step');
+      const submitBtn = document.getElementById('submitBtn');
+      const submitText = document.getElementById('submitText');
+      const loadingSpinner = document.querySelector('.loading-spinner');
 
-      function toggleMenu() {
-        hamburger.classList.toggle('open');
-        mobileNav.classList.toggle('open');
-        mobileMenuOverlay.style.display = mobileNav.classList.contains('open') ? 'block' : 'none';
-        document.body.style.overflow = mobileNav.classList.contains('open') ? 'hidden' : '';
+      let currentStep = 0;
+
+      function showStep(stepIndex) {
+        formSteps.forEach(step => step.classList.remove('active'));
+        steps.forEach(step => step.classList.remove('active'));
+        formSteps[stepIndex].classList.add('active');
+        for (let i = 0; i <= stepIndex; i++) {
+          steps[i].classList.add('active');
+        }
       }
 
-      hamburger.addEventListener('click', toggleMenu);
-      mobileMenuOverlay.addEventListener('click', toggleMenu);
-
-      // Close menu when clicking on links
-      const mobileLinks = mobileNav.querySelectorAll('a');
-      mobileLinks.forEach(link => {
-        link.addEventListener('click', toggleMenu);
+      nextButtons.forEach(button => {
+        button.addEventListener('click', function(e) {
+          e.preventDefault();
+          if (validateStep(currentStep)) {
+            if (currentStep < formSteps.length - 1) {
+              currentStep++;
+              showStep(currentStep);
+            }
+          }
+        });
       });
+
+      prevButtons.forEach(button => {
+        button.addEventListener('click', function(e) {
+          e.preventDefault();
+          if (currentStep > 0) {
+            currentStep--;
+            showStep(currentStep);
+          }
+        });
+      });
+
+      submitBtn.addEventListener('click', function(e) {
+        e.preventDefault();
+        if (validateStep(currentStep)) {
+          submitText.textContent = "Processing...";
+          loadingSpinner.classList.add('active');
+          // Simulate form submission
+          setTimeout(function() {
+            submitText.textContent = "Submitted Successfully!";
+            loadingSpinner.classList.remove('active');
+            alert("Your FASTag application has been submitted successfully! You will receive your FASTag ID soon.");
+            // Redirect to recharge page after submission
+            window.location.href = 'fastag.html';
+          }, 2000);
+        }
+      });
+
+      function validateStep(stepIndex) {
+        let isValid = true;
+        if (stepIndex === 0) {
+          const fullName = document.getElementById('fullName').value;
+          const mobile = document.getElementById('mobile').value;
+          const email = document.getElementById('email').value;
+          if (!fullName.trim()) {
+            alert("Please enter your full name");
+            isValid = false;
+          } else if (!mobile.match(/^[0-9]{10}$/)) {
+            alert("Please enter a valid 10-digit mobile number");
+            isValid = false;
+          } else if (!email.match(/^[^\s@]+@[^\s@]+\.[^\s@]+$/)) {
+            alert("Please enter a valid email address");
+            isValid = false;
+          }
+        } else if (stepIndex === 1) {
+          const vehicleNumber = document.getElementById('vehicleNumber').value;
+          const vehicleType = document.getElementById('vehicleType').value;
+          if (!vehicleNumber.trim()) {
+            alert("Please enter your vehicle number");
+            isValid = false;
+          } else if (!vehicleType) {
+            alert("Please select your vehicle type");
+            isValid = false;
+          }
+        }
+        return isValid;
+      }
     });
   </script>
 
 </body>
 </html>
+<script src="js/fastagNavigation.js"></script>
+<script>
+document.addEventListener("DOMContentLoaded", function() {
+  checkFastagId();
+});
+</script>

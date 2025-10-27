@@ -262,29 +262,33 @@ exports.createBooking = async (req, res) => {
 
         await newBooking.save();
 
-        console.log('Booking created successfully:', newBooking._id);
+        // Populate booking details for email
+        const populatedBooking = await SlotBooking.findById(newBooking._id)
+            .populate('stationId', 'name address')
+            .populate('vehicleId', 'number')
+            .populate('slotId', 'slotId type')
+            .populate('userId', 'name email');
 
-        // Send booking confirmation email with map link
+        // Send booking confirmation email
         try {
-            let destination = 's1'; // default
-            if (slot.slotId === 'SLOT68c03af1ce3e59677c77fd97-3') destination = 's1';
-            else if (slot.slotId === 'SLOT68c03af1ce3e59677c77fd97-2') destination = 's2';
-            else if (slot.slotId === 'SLOT68c03af1ce3e59677c77fd97-4') destination = 's3';
-            else if (slot.slotId === 'sl004') destination = 's4';
-
-            const mapUrl = `http://localhost:3000/StationAdmin/cursor_ai_map/map.html?source=start&destination=${destination}`;
-
-            const bookingDetails = {
-                slotId: slot.slotId,
-                startTime: startTime.toLocaleString(),
-                endTime: endTime.toLocaleString(),
-                amountPaid: amountPaid,
-                vehicleNumber: vehicle.number
-            };
-
-            await sendBookingConfirmationEmail(user.email, user.name, bookingDetails, mapUrl);
+            await sendBookingConfirmationEmail(
+                populatedBooking.userId.email,
+                populatedBooking.userId.name,
+                {
+                    stationName: populatedBooking.stationId.name,
+                    stationAddress: populatedBooking.stationId.address,
+                    vehicleNumber: populatedBooking.vehicleId.number,
+                    startTime: populatedBooking.bookingStartTime,
+                    endTime: populatedBooking.bookingEndTime,
+                    amountPaid: populatedBooking.amountPaid,
+                    paymentMethod: populatedBooking.paymentMethod,
+                    slotId: populatedBooking.slotId.slotId,
+                    slotType: populatedBooking.slotId.type
+                }
+            );
+            console.log('Booking confirmation email sent successfully');
         } catch (emailError) {
-            console.error('Error sending booking confirmation email:', emailError);
+            console.error('Failed to send booking confirmation email:', emailError);
             // Don't fail the booking if email fails
         }
 

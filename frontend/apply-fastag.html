@@ -1,0 +1,142 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Apply for FASTag</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet" />
+  <link href="https://fonts.googleapis.com/icon?family=Material+Icons" rel="stylesheet" />
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" />
+  <style>
+    .option {
+      text-decoration: none;
+      color: #1e3740;
+      padding: 8px 12px;
+      border-radius: 8px;
+      transition: all 0.3s ease;
+      font-weight: 500;
+    }
+    .option:hover {
+      color: white;
+      background-color: #46949d;
+      box-shadow: 0 2px 6px rgb(18, 105, 28);
+    }
+    .form-container {
+      max-width: 500px;
+      margin: 2rem auto;
+      background: white;
+      padding: 2rem;
+      border-radius: 12px;
+      box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+    }
+  </style>
+</head>
+<body class="bg-gray-100 font-sans">
+
+  <div class="form-container">
+    <h2 class="text-3xl font-bold mb-6 text-center">Apply for FASTag ID</h2>
+    <form id="applyFastagForm">
+      <div class="mb-4">
+        <label for="fullName" class="block mb-2 font-medium text-gray-700">Full Name</label>
+        <input type="text" id="fullName" name="fullName" required class="w-full px-4 py-3 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-600" placeholder="Enter your full name" />
+      </div>
+      <div class="mb-4">
+        <label for="mobile" class="block mb-2 font-medium text-gray-700">Mobile Number</label>
+        <input type="tel" id="mobile" name="mobile" required pattern="[0-9]{10}" class="w-full px-4 py-3 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-600" placeholder="Enter 10-digit mobile number" />
+      </div>
+      <div class="mb-4">
+        <label for="vehicleNumber" class="block mb-2 font-medium text-gray-700">Vehicle Number</label>
+        <input type="text" id="vehicleNumber" name="vehicleNumber" required class="w-full px-4 py-3 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-600" placeholder="e.g. DL01AB1234" />
+      </div>
+      <div class="mb-6">
+        <label for="vehicleType" class="block mb-2 font-medium text-gray-700">Vehicle Type</label>
+        <select id="vehicleType" name="vehicleType" required class="w-full px-4 py-3 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-600">
+          <option value="">Select Vehicle Type</option>
+          <option value="car">Car/Jeep/Van</option>
+          <option value="lcv">Light Commercial Vehicle</option>
+          <option value="bus">Bus/Truck</option>
+          <option value="3axle">3-Axle Vehicle</option>
+          <option value="4axle">4-Axle Vehicle</option>
+          <option value="heavy">Heavy Construction Machine</option>
+        </select>
+      </div>
+      <button type="submit" class="w-full bg-blue-600 text-white py-3 rounded-lg font-semibold hover:bg-blue-700 transition">Generate FASTag ID</button>
+    </form>
+    <div id="resultMessage" class="mt-4 text-center font-semibold"></div>
+  </div>
+
+  <script>
+    document.getElementById('applyFastagForm').addEventListener('submit', async function(e) {
+      e.preventDefault();
+      const resultMessage = document.getElementById('resultMessage');
+      resultMessage.textContent = '';
+      const fullName = e.target.fullName.value.trim();
+      const mobile = e.target.mobile.value.trim();
+      const vehicleNumber = e.target.vehicleNumber.value.trim();
+      const vehicleType = e.target.vehicleType.value;
+
+      if (!fullName || !mobile.match(/^[0-9]{10}$/) || !vehicleNumber || !vehicleType) {
+        resultMessage.textContent = 'Please fill all fields correctly.';
+        resultMessage.style.color = 'red';
+        return;
+      }
+
+      try {
+        // Assuming user is authenticated and token is stored in localStorage
+        const token = localStorage.getItem('token');
+        if (!token) {
+          resultMessage.textContent = 'You must be logged in to apply for FASTag.';
+          resultMessage.style.color = 'red';
+          return;
+        }
+
+        const response = await fetch('http://localhost:5000/api/fastag/generate', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': 'Bearer ' + token
+          },
+          body: JSON.stringify({ vehicleNumber, vehicleType })
+        });
+
+        console.log('Response status:', response.status);
+        const data = await response.json();
+        console.log('Response data:', data);
+
+        if (response.ok) {
+          resultMessage.textContent = `FASTag ID generated successfully: ${data.fastagId}`;
+          resultMessage.style.color = 'green';
+          e.target.reset();
+        } else {
+          if (data.message && data.message.toLowerCase().includes('already has')) {
+            if (confirm('You already have a FASTag. Would you like to recharge it now?')) {
+              // Redirect to recharge FASTag page with query params to prefill name and vehicle number
+              const user = JSON.parse(localStorage.getItem('user'));
+              if (user) {
+                const name = encodeURIComponent(user.name || '');
+                const vehicle = encodeURIComponent(user.vehicle || '');
+                window.location.href = `fastag.html?name=${name}&vehicle=${vehicle}`;
+              } else {
+                window.location.href = 'fastag.html';
+              }
+              return;
+            } else {
+              resultMessage.textContent = 'You chose not to recharge your FASTag at this time.';
+              resultMessage.style.color = 'orange';
+              return;
+            }
+          }
+          resultMessage.textContent = data.message || 'Failed to generate FASTag ID.';
+          resultMessage.style.color = 'red';
+        }
+      } catch (error) {
+        console.error('Error generating FASTag ID:', error);
+        resultMessage.textContent = 'Error occurred while generating FASTag ID. Please check console for details.';
+        resultMessage.style.color = 'red';
+      }
+    });
+  </script>
+
+</body>
+</html>

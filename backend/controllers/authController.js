@@ -21,27 +21,27 @@ function generateOTP() {
 // Helper function to validate password complexity
 function validatePassword(password) {
   const errors = [];
-  
+
   // Check for at least one uppercase letter
   if (!/[A-Z]/.test(password)) {
     errors.push("uppercase letter");
   }
-  
+
   // Check for at least one lowercase letter
   if (!/[a-z]/.test(password)) {
     errors.push("lowercase letter");
   }
-  
+
   // Check for at least one number
   if (!/[0-9]/.test(password)) {
     errors.push("number");
   }
-  
+
   // Check for at least one special character
   if (!/[!@#$%^&*(),.?":{}|<>]/.test(password)) {
     errors.push("special character");
   }
-  
+
   return errors;
 }
 
@@ -84,11 +84,13 @@ exports.register = async (req, res) => {
       email,
       role,
       password: hashedPassword,
-      isConfirmed: false,
-      confirmationToken: otp,
-      otpExpiry,
+      isConfirmed: true, // Temporarily set to true for testing without OTP
+      confirmationToken: null,
+      otpExpiry: null,
     });
 
+    // OTP email sending commented out for testing
+    /*
     // Send OTP email
     const mailOptions = {
       from: process.env.EMAIL_USER,
@@ -104,8 +106,9 @@ exports.register = async (req, res) => {
         console.log("OTP email sent:", info.response);
       }
     });
+    */
 
-    res.status(201).json({ message: "Registered successfully. Please check your email for the OTP to verify your account." });
+    res.status(201).json({ message: "Registered successfully." });
   } catch (err) {
     res.status(500).json({ message: "Error registering", error: err.message });
   }
@@ -158,10 +161,13 @@ exports.login = async (req, res) => {
 
     console.log('User found:', user.email, 'Role:', user.role, 'Confirmed:', user.isConfirmed);
 
+    // Temporarily comment out confirmation check for testing
+    /*
     if (!user.isConfirmed && user.role !== 'admin') {
       console.log('Account not confirmed for user:', user.email);
       return res.status(400).json({ message: "Account not confirmed. Please verify your email." });
     }
+    */
 
     console.log('About to compare passwords...');
     let isMatch = await bcrypt.compare(password, user.password);
@@ -237,7 +243,7 @@ exports.googleCallback = (req, res) => {
   const user = req.user;
   const token = jwt.sign(
     { id: user._id, role: user.role },
-    process.env.JWT_SECRET || 'default_jwt_secret_key',
+    'default_jwt_secret_key',
     { expiresIn: "1d" }
   );
   // Redirect to frontend with token and user data
@@ -272,6 +278,32 @@ exports.deleteUsersExceptAdmins = async (req, res) => {
 // Add this function to your existing authController.js file manually:
 const { OAuth2Client } = require('google-auth-library');
 const client = new OAuth2Client(process.env.GOOGLE_CLIENT_ID);
+
+// Get user profile
+exports.getProfile = async (req, res) => {
+  try {
+    const userId = req.user.id;
+    const user = await User.findById(userId).select('-password');
+
+    if (!user) {
+      return res.status(404).json({ message: 'User not found' });
+    }
+
+    res.json({
+      id: user._id,
+      name: user.name,
+      email: user.email,
+      role: user.role,
+      vehicle: user.vehicle,
+      vehicleType: user.vehicleType,
+      fastagId: user.fastagId,
+      walletBalance: user.walletBalance || 0
+    });
+  } catch (error) {
+    console.error('Error fetching profile:', error);
+    res.status(500).json({ message: 'Error fetching profile', error: error.message });
+  }
+};
 
 exports.googleSignIn = async (req, res) => {
   const { idToken } = req.body;
@@ -310,7 +342,7 @@ exports.googleSignIn = async (req, res) => {
     // Issue JWT token
     const token = jwt.sign(
       { id: user._id, role: user.role },
-      process.env.JWT_SECRET || 'default_jwt_secret_key',
+      'default_jwt_secret_key',
       { expiresIn: "1d" }
     );
 

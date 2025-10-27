@@ -1,6 +1,6 @@
 const express = require("express");
 const passport = require("passport");
-const { register, login, googleCallback, getUserCount, getUsersList, deleteUsersExceptAdmins, googleSignIn, verifyOtp } = require("../controllers/authController");
+const { register, login, googleCallback, getUserCount, getUsersList, deleteUsersExceptAdmins, googleSignIn, verifyOtp, getProfile } = require("../controllers/authController");
 const bcrypt = require("bcryptjs");
 const jwt = require("jsonwebtoken");
 const User = require("../models/User");
@@ -9,6 +9,11 @@ const StoreAdminCredentials = require("../models/StoreAdminCredentials");
 const DEFAULT_STORE_ADMIN_PASSWORD = "stationaccess";
 
 const router = express.Router();
+
+// Handle OPTIONS requests for CORS preflight
+router.options('/login', (req, res) => res.sendStatus(200));
+router.options('/signup', (req, res) => res.sendStatus(200));
+router.options('/verify-otp', (req, res) => res.sendStatus(200));
 
 router.post("/signup", register);
 // Regular login route - reject admin attempts
@@ -28,6 +33,9 @@ router.post("/login", async (req, res, next) => {
   }
 });
 router.post("/verify-otp", verifyOtp);
+
+// Get user profile
+router.get('/profile', passport.authenticate('jwt', { session: false }), getProfile);
 
 // Admin login route with role check and referrer validation
 router.post("/admin/login", async (req, res, next) => {

@@ -26,7 +26,7 @@ const sendApprovalEmail = async (toEmail, userName, registrationId, attachments 
                     <p>Next steps:</p>
                     <ol>
                         <li>Complete the document submission process</li>
-                        <li>Get Approved by parkpro+ and get login credentails 
+                        <li>Get Approved by parkpro+ and get login credentials</li>
                         <li>Login in to your station dashboard & Start listing your parking spots</li>
                     </ol>
                     <p>Thank you for choosing ParkPro!</p>
@@ -126,9 +126,51 @@ const sendRejectionEmail = async (toEmail, userName, reason) => {
     }
 };
 
-// Send booking confirmation email with map link
-const sendBookingConfirmationEmail = async (toEmail, userName, bookingDetails, mapUrl) => {
+// Send payment success email notification
+const sendPaymentSuccessEmail = async (toEmail, userName, amount, transactionId) => {
     try {
+        const mailOptions = {
+            from: process.env.EMAIL_USER || 'parkproplus@gmail.com',
+            to: toEmail,
+            subject: 'Payment Successful - FASTag Recharge',
+            html: `
+                <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
+                    <h2 style="color: #46949d;">Payment Successful! 🎉</h2>
+                    <p>Dear ${userName},</p>
+                    <p>Your FASTag recharge payment has been successfully processed.</p>
+
+                    <div style="background-color: #f8f9fa; padding: 20px; border-radius: 8px; margin: 20px 0;">
+                        <h3 style="color: #46949d; margin-top: 0;">Payment Details:</h3>
+                        <p><strong>Amount:</strong> ₹${amount}</p>
+                        <p><strong>Transaction ID:</strong> ${transactionId}</p>
+                        <p><strong>Status:</strong> Completed</p>
+                        <p><strong>Date:</strong> ${new Date().toLocaleDateString()}</p>
+                    </div>
+
+                    <p>Your FASTag wallet has been credited with ₹${amount}. You can now use your FASTag for toll payments.</p>
+
+                    <p>If you have any questions, please contact our support team at parkproplus@gmail.com</p>
+
+                    <p>Thank you for using ParkPro!</p>
+                    <p>Best regards,<br>The ParkPro Team</p>
+                </div>
+            `
+        };
+
+        await transporter.sendMail(mailOptions);
+        console.log('Payment success email sent successfully to:', toEmail);
+        return true;
+    } catch (error) {
+        console.error('Error sending payment success email:', error);
+        return false;
+    }
+};
+
+// Send booking confirmation email
+const sendBookingConfirmationEmail = async (toEmail, userName, bookingDetails) => {
+    try {
+        const { stationName, stationAddress, vehicleNumber, startTime, endTime, amountPaid, paymentMethod, slotId, slotType } = bookingDetails;
+
         const mailOptions = {
             from: process.env.EMAIL_USER || 'parkproplus@gmail.com',
             to: toEmail,
@@ -137,24 +179,26 @@ const sendBookingConfirmationEmail = async (toEmail, userName, bookingDetails, m
                 <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
                     <h2 style="color: #46949d;">🎉 Booking Confirmed!</h2>
                     <p>Dear ${userName},</p>
-                    <p>Your parking slot booking has been successfully confirmed.</p>
-                    
+                    <p>Your parking slot has been successfully booked. Here are the details:</p>
+
                     <div style="background-color: #f8f9fa; padding: 20px; border-radius: 8px; margin: 20px 0;">
                         <h3 style="color: #46949d; margin-top: 0;">Booking Details:</h3>
-                        <p><strong>Slot:</strong> ${bookingDetails.slotId}</p>
-                        <p><strong>Start Time:</strong> ${bookingDetails.startTime}</p>
-                        <p><strong>End Time:</strong> ${bookingDetails.endTime}</p>
-                        <p><strong>Amount Paid:</strong> ₹${bookingDetails.amountPaid}</p>
-                        <p><strong>Vehicle:</strong> ${bookingDetails.vehicleNumber}</p>
+                        <p><strong>Station:</strong> ${stationName}</p>
+                        <p><strong>Address:</strong> ${stationAddress}</p>
+                        <p><strong>Slot:</strong> ${slotId} (${slotType})</p>
+                        <p><strong>Vehicle:</strong> ${vehicleNumber}</p>
+                        <p><strong>Start Time:</strong> ${new Date(startTime).toLocaleString()}</p>
+                        <p><strong>End Time:</strong> ${new Date(endTime).toLocaleString()}</p>
+                        <p><strong>Amount Paid:</strong> ₹${amountPaid}</p>
+                        <p><strong>Payment Method:</strong> ${paymentMethod.toUpperCase()}</p>
+                        <p><strong>Status:</strong> Confirmed</p>
                     </div>
 
-                    <div style="background-color: #e8f5e8; padding: 20px; border-radius: 8px; margin: 20px 0; border-left: 4px solid #28a745;">
-                        <h3 style="color: #155724; margin-top: 0;">🗺️ Parking Map:</h3>
-                        <p>Click the link below to view your parking path from the entry to your slot:</p>
-                        <p><a href="${mapUrl}" style="color: #46949d; font-weight: bold;">View Parking Map</a></p>
-                    </div>
+                    <p>Please arrive at the station on time. You can view this booking in your profile under "My Bookings".</p>
 
-                    <p>Thank you for choosing ParkPro!</p>
+                    <p>If you have any questions, please contact our support team at parkproplus@gmail.com</p>
+
+                    <p>Thank you for using ParkPro!</p>
                     <p>Best regards,<br>The ParkPro Team</p>
                 </div>
             `
@@ -173,5 +217,6 @@ module.exports = {
     sendApprovalEmail,
     sendFinalApprovalEmail,
     sendRejectionEmail,
+    sendPaymentSuccessEmail,
     sendBookingConfirmationEmail
 };

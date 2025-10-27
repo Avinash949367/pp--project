@@ -253,7 +253,7 @@ const changeUserPassword = async (req, res) => {
 const getUserDashboard = async (req, res) => {
   try {
     const userId = req.user.id;
-    
+
     const user = await User.findById(userId).select('-password');
     if (!user) {
       return res.status(404).json({ message: 'User not found' });
@@ -926,15 +926,12 @@ const getUserBookings = async (req, res) => {
       return res.status(403).json({ message: 'Access denied' });
     }
 
-    // Get all bookings (not cancelled or expired)
-    const bookings = await SlotBooking.find({
-      userId,
-      status: { $in: ['reserved', 'active', 'confirmed', 'completed'] }
-    })
+    // Fetch current and future bookings
+    const bookings = await SlotBooking.find({ userId })
       .populate('stationId', 'name location address')
       .populate('vehicleId', 'number type')
       .populate('slotId', 'slotId type')
-      .sort({ bookingStartTime: 1 }); // Sort by start time ascending
+      .sort({ createdAt: -1 });
 
     const formattedBookings = bookings.map(booking => ({
       id: booking._id,
@@ -942,7 +939,8 @@ const getUserBookings = async (req, res) => {
       stationName: booking.stationId?.name || 'Unknown Station',
       stationLocation: booking.stationId?.location || '',
       stationAddress: booking.stationId?.address || '',
-      slotId: booking.slotId?.slotId || 'N/A',
+      slotId: booking.slotId?.slotId || 'Unknown Slot',
+      slotType: booking.slotId?.type || 'Unknown Type',
       vehicle: booking.vehicleId ? `${booking.vehicleId.number} (${booking.vehicleId.type})` : 'Unknown vehicle',
       bookingStartTime: booking.bookingStartTime,
       bookingEndTime: booking.bookingEndTime,

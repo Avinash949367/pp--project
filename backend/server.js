@@ -46,16 +46,7 @@ const createAdminUser = async () => {
 createAdminUser();
 
 app.use(cors({
-  origin: function (origin, callback) {
-    // Allow requests with no origin (like mobile apps or curl requests)
-    if (!origin) return callback(null, true);
-    // Allow localhost origins for development (Flutter web, etc.)
-    if (origin.startsWith('http://localhost:') || origin.startsWith('http://127.0.0.1:')) {
-      return callback(null, true);
-    }
-    // Otherwise, deny
-    return callback(new Error('Not allowed by CORS'));
-  },
+  origin: true, // Allow all origins
   credentials: true,
   methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
   allowedHeaders: ['Content-Type', 'Authorization']
@@ -77,11 +68,14 @@ app.use(express.static(path.join(__dirname, '../frontend')));
 app.use('/', authRoutes);
 app.use('/api/registrations', registerRoutes);
 app.use('/api', stationRoutes);
+
 const mediaRoutes = require('./routes/mediaRoutes');
 app.use('/api/media', mediaRoutes);
+
 const userProfileRoutes = require('./routes/userProfileRoutes');
 const userRoutes = require('./routes/userRoutes');
 const contactRoutes = require('./routes/contactRoutes');
+const fastagRoutes = require('./routes/fastagRoutes');
 
 // Import cleanup function
 const cleanupExpiredReservations = require('./scripts/cleanupExpiredReservations');
@@ -94,6 +88,7 @@ app.use('/api', userRoutes);
 app.use('/api/contacts', contactRoutes);
 app.use('/api/slots', slotRoutes);
 app.use('/api/reviews', reviewRoutes);  // Added review routes
+app.use('/api/fastag', fastagRoutes);
 
 // Start the server
 const PORT = process.env.PORT || 5000;

@@ -614,6 +614,27 @@ class _QuickBookHomeState extends State<QuickBookHome>
               'action': 'view_details',
               'data': navData
             });
+          } else if (action == 'display' &&
+              screen == 'stations' &&
+              navData != null &&
+              navData is List &&
+              navData.isNotEmpty) {
+            for (var station in navData) {
+              String stationText =
+                  'Station: ${station['name'] ?? 'Unknown Station'}\n'
+                  'Address: ${station['address'] ?? 'N/A'}\n'
+                  'City: ${station['city'] ?? 'N/A'}\n'
+                  'Slots: ${station['slots'] ?? 'N/A'}\n'
+                  'Price: ₹${station['price'] ?? 'N/A'}';
+              _messages.add({'sender': 'bot', 'text': stationText});
+            }
+            // Add "View Details" button
+            _messages.add({
+              'sender': 'bot',
+              'text': 'View Details',
+              'action': 'view_details_stations',
+              'data': navData
+            });
           }
         });
         _scrollController.animateTo(
@@ -1279,6 +1300,89 @@ class _QuickBookHomeState extends State<QuickBookHome>
                                                             booking))
                                                         .toList()),
                                               ),
+                                            );
+                                          },
+                                          child: const Text('View Details'),
+                                        ),
+                                      if (hasAction &&
+                                          message['action'] ==
+                                              'view_details_stations')
+                                        ElevatedButton(
+                                          onPressed: () {
+                                            showDialog(
+                                              context: context,
+                                              builder: (BuildContext context) {
+                                                return AlertDialog(
+                                                  backgroundColor:
+                                                      const Color(0xFF1E1E1E),
+                                                  title: const Text(
+                                                      'Station Details',
+                                                      style: TextStyle(
+                                                          color: Colors.white)),
+                                                  content:
+                                                      SingleChildScrollView(
+                                                    child: Column(
+                                                      crossAxisAlignment:
+                                                          CrossAxisAlignment
+                                                              .start,
+                                                      children: (message['data']
+                                                              as List<dynamic>)
+                                                          .map((station) {
+                                                        return Padding(
+                                                          padding:
+                                                              const EdgeInsets
+                                                                  .symmetric(
+                                                                  vertical:
+                                                                      8.0),
+                                                          child: Column(
+                                                            crossAxisAlignment:
+                                                                CrossAxisAlignment
+                                                                    .start,
+                                                            children: [
+                                                              Text(
+                                                                  'Name: ${station['name'] ?? 'N/A'}',
+                                                                  style: const TextStyle(
+                                                                      color: Colors
+                                                                          .white)),
+                                                              Text(
+                                                                  'Address: ${station['address'] ?? 'N/A'}',
+                                                                  style: const TextStyle(
+                                                                      color: Colors
+                                                                          .white70)),
+                                                              Text(
+                                                                  'City: ${station['city'] ?? 'N/A'}',
+                                                                  style: const TextStyle(
+                                                                      color: Colors
+                                                                          .white70)),
+                                                              Text(
+                                                                  'Slots: ${station['slots'] ?? 'N/A'}',
+                                                                  style: const TextStyle(
+                                                                      color: Colors
+                                                                          .white70)),
+                                                              Text(
+                                                                  'Price: ₹${station['price'] ?? 'N/A'}',
+                                                                  style: const TextStyle(
+                                                                      color: Colors
+                                                                          .white70)),
+                                                            ],
+                                                          ),
+                                                        );
+                                                      }).toList(),
+                                                    ),
+                                                  ),
+                                                  actions: [
+                                                    TextButton(
+                                                      onPressed: () =>
+                                                          Navigator.of(context)
+                                                              .pop(),
+                                                      child: const Text('Close',
+                                                          style: TextStyle(
+                                                              color: Color(
+                                                                  0xFF2979FF))),
+                                                    ),
+                                                  ],
+                                                );
+                                              },
                                             );
                                           },
                                           child: const Text('View Details'),

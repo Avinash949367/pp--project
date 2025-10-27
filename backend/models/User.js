@@ -31,6 +31,20 @@ const userSchema = new mongoose.Schema({
     trim: true,
     default: ''  // URL or path to profile image
   },
+  vehicleType: {
+    type: String,
+    trim: true
+  },
+  upiId: {
+    type: String,
+    trim: true
+  },
+  fastagId: {
+    type: String,
+    unique: true,
+    sparse: true,
+    trim: true
+  },
   membershipStatus: {
     type: String,
     enum: ['Basic', 'Premium', 'Gold'],

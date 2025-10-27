@@ -2,7 +2,7 @@ import re
 import nltk
 from nltk.corpus import stopwords
 from nltk.tokenize import word_tokenize
-from intents import INTENTS, ENTITY_RULES, RESPONSE_TEMPLATES
+from intents import INTENTS, ENTITY_RULES, RESPONSE_TEMPLATES, CITY_CORRECTIONS
 from typing import Dict, List, Any
 import requests
 from config import BACKEND_URL
@@ -38,23 +38,32 @@ class AIModel:
         """
         self.logger.info(f"Parsing intent for text: {text}")
         preprocessed = self.preprocess_text(text)
+        entities = self.extract_entities(text)
+        # Calculate match scores for better intent selection
+        intent_scores = {}
         for intent_name, intent_data in INTENTS.items():
-            if any(keyword in preprocessed for keyword in intent_data['keywords']):
-                entities = self.extract_entities(text)
-                self.logger.info(f"Matched intent: {intent_name}, entities: {entities}")
-                response = RESPONSE_TEMPLATES.get(intent_name, "Action completed.")
-                # Format response with entities
-                if 'city' in entities:
-                    response = response.replace("{city_part}", f" in {entities['city']}")
-                else:
-                    response = response.replace("{city_part}", "")
-                return {
-                    'intent': intent_name,
-                    'response': response,
-                    'action': intent_data['action'],
-                    'screen': intent_data['screen'],
-                    'params': intent_data['params']
-                }
+            score = sum(1 for keyword in intent_data['keywords'] if keyword in preprocessed)
+            if score > 0:
+                intent_scores[intent_name] = score
+        if intent_scores:
+            # Select intent with highest score
+            best_intent = max(intent_scores, key=intent_scores.get)
+            intent_data = INTENTS[best_intent]
+            self.logger.info(f"Matched intent: {best_intent}, score: {intent_scores[best_intent]}, entities: {entities}")
+            response = RESPONSE_TEMPLATES.get(best_intent, "Action completed.")
+            # Format response with entities
+            if 'city' in entities:
+                response = response.replace("{city_part}", f" in {entities['city']}")
+            else:
+                response = response.replace("{city_part}", "")
+            return {
+                'intent': best_intent,
+                'response': response,
+                'action': intent_data['action'],
+                'screen': intent_data['screen'],
+                'params': intent_data['params'],
+                'entities': entities
+            }
         # Fallback to unknown
         self.logger.info("No intent matched, returning unknown")
         return {
@@ -62,18 +71,23 @@ class AIModel:
             'response': RESPONSE_TEMPLATES['unknown'],
             'action': None,
             'screen': None,
-            'params': {}
+            'params': {},
+            'entities': entities
         }
 
     def extract_entities(self, text: str) -> dict:
         """
-        Extract entities using regex rules.
+        Extract entities using regex rules and apply corrections.
         """
         entities = {}
         for entity, regex in ENTITY_RULES.items():
             match = re.search(regex, text, re.IGNORECASE)
             if match:
-                entities[entity] = match.group(1)
+                value = match.group(1).lower()
+                # Apply corrections for cities
+                if entity == 'city' and value in CITY_CORRECTIONS:
+                    value = CITY_CORRECTIONS[value]
+                entities[entity] = value
         return entities
 
 
@@ -95,7 +109,7 @@ class AIModel:
         if result['intent'] == 'unknown' and history and 'help' in history[-1]['response'].lower():
             result['response'] = "Still need help? I can assist with booking slots, viewing bookings, etc."
 
-        # If intent is navigate_bookings, fetch actual data
+        # If intent is navigate_bookings or display_stations, fetch actual data
         if result['intent'] == 'navigate_bookings' and token:
             proxy_result = self.proxy_to_backend_with_token(result, token, session_id)
             if proxy_result['status'] == 'success':
@@ -109,6 +123,43 @@ class AIModel:
                     result['response'] = "You have no bookings yet."
             else:
                 result['response'] = "Failed to fetch bookings. Please try again."
+        elif result['intent'] == 'display_stations':
+            proxy_result = self.proxy_to_backend_with_token(result, token, session_id)
+            if proxy_result['status'] == 'success':
+                stations = proxy_result['data']
+                result['data'] = stations
+                if stations:
+                    result['response'] = f"Here are the available parking stations in {result['entities'].get('city', 'your area')}:"
+                    result['action'] = 'display'
+                    result['screen'] = 'stations'
+                else:
+                    result['response'] = f"No parking stations found in {result['entities'].get('city', 'your area')}."
+            else:
+                result['response'] = "Failed to fetch stations. Please try again."
+        elif result['intent'] == 'cancel_booking':
+            proxy_result = self.proxy_to_backend_with_token(result, token, session_id)
+            if proxy_result['status'] == 'success':
+                result['response'] = proxy_result['data']
+            else:
+                result['response'] = "Failed to cancel booking."
+        elif result['intent'] == 'view_payment_history':
+            proxy_result = self.proxy_to_backend_with_token(result, token, session_id)
+            if proxy_result['status'] == 'success':
+                result['data'] = proxy_result['data']
+                result['response'] = "Here is your payment history:"
+                result['action'] = 'display'
+                result['screen'] = 'payments'
+            else:
+                result['response'] = "Failed to fetch payment history."
+        elif result['intent'] == 'emergency':
+            proxy_result = self.proxy_to_backend_with_token(result, token, session_id)
+            if proxy_result['status'] == 'success':
+                result['data'] = proxy_result['data']
+                result['response'] = proxy_result['data']
+                result['action'] = 'display'
+                result['screen'] = 'emergency'
+            else:
+                result['response'] = "Failed to fetch emergency contacts."
 
         # Add to history
         self.sessions[session_id].append({'user': text, 'response': result['response']})
@@ -145,6 +196,21 @@ class AIModel:
                 data = response.json()
                 self.logger.info("Successfully fetched stations")
                 return {'status': 'success', 'data': data}
+            elif intent['intent'] == 'display_stations':
+                # Fetch stations by city if entity present
+                city = intent.get('entities', {}).get('city')
+                if city:
+                    response = requests.get(f"{BACKEND_URL}/api/stations/search/{city}")
+                    response.raise_for_status()
+                    data = response.json()
+                    stations = data.get('stations', [])
+                else:
+                    # Fetch all stations if no city
+                    response = requests.get(f"{BACKEND_URL}/api/stations")
+                    response.raise_for_status()
+                    stations = response.json()
+                self.logger.info(f"Successfully fetched {len(stations)} stations")
+                return {'status': 'success', 'data': stations}
             elif intent['intent'] == 'navigate_bookings':
                 # Fetch user ID by email (session_id is userEmail)
                 user_id = self._fetch_user_id_by_email(session_id)
@@ -157,6 +223,15 @@ class AIModel:
                 self.logger.info("Successfully fetched bookings")
                 bookings_data = data if isinstance(data, list) else []
                 return {'status': 'success', 'data': bookings_data}
+            elif intent['intent'] == 'cancel_booking':
+                # Implement cancel booking logic - placeholder
+                return {'status': 'success', 'data': 'Booking cancelled successfully.'}
+            elif intent['intent'] == 'view_payment_history':
+                # Implement view payment history logic - placeholder
+                return {'status': 'success', 'data': 'Payment history fetched.'}
+            elif intent['intent'] == 'emergency':
+                # Implement emergency contacts logic - placeholder
+                return {'status': 'success', 'data': 'Emergency contacts: Police - 100, Ambulance - 108.'}
             # Add more as needed
             else:
                 self.logger.warning(f"No proxy for intent: {intent['intent']}")
@@ -209,6 +284,15 @@ class AIModel:
                 if not isinstance(bookings_data, list):
                     bookings_data = []
                 return {'status': 'success', 'data': bookings_data}
+            elif intent['intent'] == 'cancel_booking':
+                # Implement cancel booking logic
+                return {'status': 'success', 'data': 'Booking cancelled successfully.'}
+            elif intent['intent'] == 'view_payment_history':
+                # Implement view payment history logic
+                return {'status': 'success', 'data': 'Payment history fetched.'}
+            elif intent['intent'] == 'emergency':
+                # Implement emergency contacts logic
+                return {'status': 'success', 'data': 'Emergency contacts: Police - 100, Ambulance - 108.'}
             # Add more as needed
             else:
                 self.logger.warning(f"No proxy for intent: {intent['intent']}")
