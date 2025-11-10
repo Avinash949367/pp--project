@@ -9,7 +9,8 @@ const {
   linkVehicle,
   deactivateFastag,
   generateFastagId,
-  applyForFastag
+  applyForFastag,
+  verifyRazorpayPayment
 } = require('../controllers/fastagController');
 
 const router = express.Router();
@@ -46,6 +47,9 @@ router.post('/recharge', recharge);
 // Confirm UPI payment
 router.post('/confirm-upi', confirmUpiPayment);
 
+// Verify Razorpay payment
+router.post('/verify-razorpay-payment', verifyRazorpayPayment);
+
 // Pay toll
 router.post('/pay-toll', payToll);
 
@@ -63,6 +67,9 @@ router.post('/generate', generateFastagId);
 
 // Apply for new FASTAG
 router.post('/apply', applyForFastag);
+
+// Razorpay webhook (no auth required)
+router.post('/razorpay-webhook', express.raw({ type: 'application/json' }), require('../controllers/fastagController').handleRazorpayWebhook);
 
 // Stripe webhook (no auth required)
 router.post('/webhook', express.raw({ type: 'application/json' }), require('../controllers/fastagController').handleStripeWebhook);

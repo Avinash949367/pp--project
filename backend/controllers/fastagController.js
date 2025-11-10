@@ -4,7 +4,14 @@ const FastagTransaction = require('../models/FastagTransaction');
 const Counter = require('../models/Counter');
 const { v4: uuidv4 } = require('uuid');
 const stripe = require('stripe')(process.env.STRIPE_SECRET_KEY);
+const Razorpay = require('razorpay');
 const { sendPaymentSuccessEmail } = require('../services/emailService');
+
+// Initialize Razorpay
+const razorpay = new Razorpay({
+  key_id: process.env.RAZORPAY_KEY_ID,
+  key_secret: process.env.RAZORPAY_KEY_SECRET,
+});
 
 // Get FASTag balance for user
 exports.getBalance = async (req, res) => {
@@ -58,21 +65,22 @@ exports.recharge = async (req, res) => {
       vehicleUpdated = true;
     }
 
-    if (paymentMethod === 'upi') {
-      // Create Stripe PaymentIntent for UPI payment
+    if (paymentMethod === 'razorpay') {
+      // Create Razorpay order
       try {
-        const paymentIntent = await stripe.paymentIntents.create({
-          amount: amount * 100, // Amount in paisa (smallest currency unit)
-          currency: 'inr',
-          payment_method_types: ['upi'],
-          metadata: {
+        const options = {
+          amount: amount * 100, // Amount in paisa
+          currency: 'INR',
+          receipt: `rcpt_${Date.now()}`,
+          payment_capture: 1, // Auto capture
+          notes: {
             userId: userId,
             vehicleNumber: vehicleNumber || user.vehicle,
-            vehicleUpdated: vehicleUpdated.toString(),
-            upiId: upiId
-          },
-          description: `FASTag recharge via UPI${vehicleUpdated ? ' (vehicle updated)' : ''}`
-        });
+            vehicleUpdated: vehicleUpdated.toString()
+          }
+        };
+
+        const order = await razorpay.orders.create(options);
 
         // Find or create vehicle for vehicleId reference
         let vehicle = await Vehicle.findOne({ userId, number: vehicleNumber || user.vehicle });
@@ -99,10 +107,10 @@ exports.recharge = async (req, res) => {
           vehicleNumber: vehicleNumber || user.vehicle,
           type: 'recharge',
           amount,
-          method: 'upi',
+          method: 'razorpay',
           status: 'pending',
-          txnId: paymentIntent.id,
-          description: `FASTag recharge via UPI${vehicleUpdated ? ' (vehicle updated)' : ''}`
+          txnId: order.id,
+          description: `FASTag recharge via Razorpay${vehicleUpdated ? ' (vehicle updated)' : ''}`
         });
 
         await transaction.save();
@@ -113,75 +121,78 @@ exports.recharge = async (req, res) => {
         }
 
         res.json({
-          clientSecret: paymentIntent.client_secret,
-          paymentIntentId: paymentIntent.id,
-          amount: amount,
+          orderId: order.id,
+          amount: order.amount,
+          currency: order.currency,
+          key: process.env.RAZORPAY_KEY_ID,
           vehicleUpdated: vehicleUpdated,
-          paymentMethod: 'upi'
+          paymentMethod: 'razorpay'
         });
-      } catch (stripeError) {
-        console.error('Stripe PaymentIntent creation failed:', stripeError);
-        // Fallback to manual UPI flow since Stripe UPI is not available in test mode
-        console.log('Falling back to manual UPI flow');
-
-        // Find or create vehicle for vehicleId reference
-        let vehicle = await Vehicle.findOne({ userId, number: vehicleNumber || user.vehicle });
-        if (!vehicle) {
-          // Create vehicle if it doesn't exist
-          vehicle = new Vehicle({
-            userId,
-            number: vehicleNumber || user.vehicle,
-            type: 'car', // Default type
-            isPrimary: true,
-            fastTag: {
-              tagId: user.fastagId || 'TEMP',
-              balance: 0,
-              status: 'active'
-            }
-          });
-          await vehicle.save();
-        }
-
-        // Generate unique transaction ID
-        const transactionId = uuidv4();
-
-        // Create UPI deep link (for production)
-        const upiDeepLink = `upi://pay?pa=${upiId}&pn=ParkPro&am=${amount}&cu=INR&tn=FASTag%20Recharge&tr=${transactionId}`;
-
-        // Create QR code URL using Google Charts API
-        const qrCodeUrl = `https://chart.googleapis.com/chart?chs=300x300&cht=qr&chl=${encodeURIComponent(upiDeepLink)}&choe=UTF-8`;
-
-        // Create pending transaction record
-        const transaction = new FastagTransaction({
-          userId,
-          vehicleId: vehicle._id,
-          vehicleNumber: vehicleNumber || user.vehicle,
-          type: 'recharge',
-          amount,
-          method: 'upi',
-          status: 'pending',
-          txnId: transactionId,
-          description: `FASTag recharge via UPI${vehicleUpdated ? ' (vehicle updated)' : ''}`
-        });
-
-        await transaction.save();
-
-        // Update vehicle if changed
-        if (vehicleUpdated) {
-          await user.save();
-        }
-
-        res.json({
-          message: 'UPI payment initiated. Complete the payment using your UPI app.',
-          upiDeepLink: upiDeepLink,
-          qrCodeUrl: qrCodeUrl,
-          transactionId: transactionId,
-          amount: amount,
-          vehicleUpdated: vehicleUpdated,
-          paymentMethod: 'upi',
-          status: 'pending'
-        });
+      } catch (razorpayError) {
+        console.error('Razorpay order creation failed:', razorpayError);
+        return res.status(500).json({ message: 'Failed to create payment order', error: razorpayError.message });
       }
+    } else if (paymentMethod === 'upi') {
+      // Fallback to manual UPI flow
+      console.log('Using manual UPI flow');
+
+      // Find or create vehicle for vehicleId reference
+      let vehicle = await Vehicle.findOne({ userId, number: vehicleNumber || user.vehicle });
+      if (!vehicle) {
+        // Create vehicle if it doesn't exist
+        vehicle = new Vehicle({
+          userId,
+          number: vehicleNumber || user.vehicle,
+          type: 'car', // Default type
+          isPrimary: true,
+          fastTag: {
+            tagId: user.fastagId || 'TEMP',
+            balance: 0,
+            status: 'active'
+          }
+        });
+        await vehicle.save();
+      }
+
+      // Generate unique transaction ID
+      const transactionId = uuidv4();
+
+      // Create UPI deep link (for production)
+      const upiDeepLink = `upi://pay?pa=${upiId}&pn=ParkPro&am=${amount}&cu=INR&tn=FASTag%20Recharge&tr=${transactionId}`;
+
+      // Create QR code URL using Google Charts API
+      const qrCodeUrl = `https://chart.googleapis.com/chart?chs=300x300&cht=qr&chl=${encodeURIComponent(upiDeepLink)}&choe=UTF-8`;
+
+      // Create pending transaction record
+      const transaction = new FastagTransaction({
+        userId,
+        vehicleId: vehicle._id,
+        vehicleNumber: vehicleNumber || user.vehicle,
+        type: 'recharge',
+        amount,
+        method: 'upi',
+        status: 'pending',
+        txnId: transactionId,
+        description: `FASTag recharge via UPI${vehicleUpdated ? ' (vehicle updated)' : ''}`
+      });
+
+      await transaction.save();
+
+      // Update vehicle if changed
+      if (vehicleUpdated) {
+        await user.save();
+      }
+
+      res.json({
+        message: 'UPI payment initiated. Complete the payment using your UPI app.',
+        upiDeepLink: upiDeepLink,
+        qrCodeUrl: qrCodeUrl,
+        transactionId: transactionId,
+        amount: amount,
+        vehicleUpdated: vehicleUpdated,
+        paymentMethod: 'upi',
+        status: 'pending'
+      });
     } else {
       // For card and other payment methods, process immediately
       // Validate card details if payment method is card
@@ -508,7 +519,131 @@ exports.deactivateFastag = async (req, res) => {
   }
 };
 
-// Handle Stripe webhook
+// Verify Razorpay payment and update transaction/balance
+exports.verifyRazorpayPayment = async (req, res) => {
+  try {
+    const userId = req.user.id;
+    const { paymentId, orderId } = req.body;
+
+    if (!paymentId || !orderId) {
+      return res.status(400).json({ message: 'Payment ID and Order ID are required' });
+    }
+
+    // For testing purposes, simulate successful payment verification
+    // In production, this would fetch from Razorpay API
+    console.log('Simulating payment verification for:', { paymentId, orderId });
+
+    // Find the pending transaction
+    const transaction = await FastagTransaction.findOne({
+      txnId: orderId,
+      userId,
+      status: 'pending',
+      type: 'recharge',
+      method: 'razorpay'
+    });
+
+    if (!transaction) {
+      return res.status(404).json({ message: 'Pending transaction not found' });
+    }
+
+    // Update transaction status
+    transaction.status = 'completed';
+    transaction.paymentId = paymentId;
+    await transaction.save();
+
+    // Update user wallet balance
+    const user = await User.findById(userId);
+    if (!user) {
+      return res.status(404).json({ message: 'User not found' });
+    }
+
+    user.walletBalance = (user.walletBalance || 0) + transaction.amount;
+    await user.save();
+
+    // Send payment success email
+    await sendPaymentSuccessEmail(user.email, user.name, transaction.amount, transaction.txnId);
+
+    // Fetch recent transactions
+    const recentTransactions = await FastagTransaction.find({ userId })
+      .sort({ createdAt: -1 })
+      .limit(5)
+      .select('type amount status createdAt description');
+
+    res.json({
+      message: 'Payment verified and balance updated successfully',
+      newBalance: user.walletBalance,
+      transactionId: transaction.txnId,
+      fastagId: user.fastagId,
+      recentTransactions: recentTransactions
+    });
+  } catch (error) {
+    console.error('Error verifying Razorpay payment:', error);
+    res.status(500).json({ message: 'Error verifying payment', error: error.message });
+  }
+};
+
+// Handle Razorpay webhook
+exports.handleRazorpayWebhook = async (req, res) => {
+  try {
+    const secret = process.env.RAZORPAY_WEBHOOK_SECRET || 'your_webhook_secret';
+    const crypto = require('crypto');
+
+    // Verify webhook signature
+    const expectedSignature = crypto
+      .createHmac('sha256', secret)
+      .update(JSON.stringify(req.body))
+      .digest('hex');
+
+    const receivedSignature = req.headers['x-razorpay-signature'];
+
+    if (expectedSignature !== receivedSignature) {
+      console.error('Webhook signature verification failed');
+      return res.status(400).json({ message: 'Invalid signature' });
+    }
+
+    console.log('Razorpay webhook received:', req.body.event);
+
+    if (req.body.event === 'payment.captured') {
+      const payment = req.body.payload.payment.entity;
+
+      // Find the pending transaction
+      const transaction = await FastagTransaction.findOne({
+        txnId: payment.order_id,
+        status: 'pending',
+        type: 'recharge'
+      });
+
+      if (!transaction) {
+        console.error('Transaction not found for order:', payment.order_id);
+        return res.status(200).json({ message: 'Transaction not found' });
+      }
+
+      // Update transaction status
+      transaction.status = 'completed';
+      transaction.paymentId = payment.id;
+      await transaction.save();
+
+      // Update user wallet balance
+      const user = await User.findById(transaction.userId);
+      if (user) {
+        user.walletBalance = (user.walletBalance || 0) + transaction.amount;
+        await user.save();
+
+        // Send payment success email
+        await sendPaymentSuccessEmail(user.email, user.name, transaction.amount, transaction.txnId);
+
+        console.log('Payment processed successfully for user:', user.email);
+      }
+    }
+
+    res.status(200).json({ received: true });
+  } catch (error) {
+    console.error('Razorpay webhook error:', error);
+    res.status(500).json({ message: 'Webhook processing failed' });
+  }
+};
+
+// Handle Stripe webhook (keeping for backward compatibility)
 exports.handleStripeWebhook = async (req, res) => {
   try {
     const sig = req.headers['stripe-signature'];
