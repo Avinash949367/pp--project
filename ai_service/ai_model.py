@@ -22,7 +22,7 @@ class AIModel:
         except Exception as e:
             self.logger.warning(f"NLTK stopwords download failed (may already exist): {e}")
         self.stop_words = set(stopwords.words('english'))
-        self.sessions: Dict[str, List[Dict[str, str]]] = {}  # session_id -> list of {'user': text, 'response': response}
+        self.sessions: Dict[str, Dict[str, Any]] = {}  # session_id -> {'history': list, 'context': dict}
 
     def preprocess_text(self, text: str) -> list:
         """
@@ -34,7 +34,7 @@ class AIModel:
 
     def parse_intent(self, text: str) -> dict:
         """
-        Parse intent from text using preprocessed tokens and keyword matching.
+        Parse intent from text using keyword matching on preprocessed tokens.
         """
         self.logger.info(f"Parsing intent for text: {text}")
         preprocessed = self.preprocess_text(text)
@@ -42,9 +42,17 @@ class AIModel:
         # Calculate match scores for better intent selection
         intent_scores = {}
         for intent_name, intent_data in INTENTS.items():
-            score = sum(1 for keyword in intent_data['keywords'] if keyword in preprocessed)
+            score = 0
+            for keyword in intent_data['keywords']:
+                words = keyword.split()
+                if all(word in preprocessed for word in words):
+                    score += len(words)
             if score > 0:
                 intent_scores[intent_name] = score
+
+        # Boost score for view_slots_filtered if vehicle_type is detected
+        if 'vehicle_type' in entities and 'view_slots_filtered' in intent_scores:
+            intent_scores['view_slots_filtered'] += 5  # significant bonus to prioritize filtered intent
         if intent_scores:
             # Select intent with highest score
             best_intent = max(intent_scores, key=intent_scores.get)
@@ -56,6 +64,19 @@ class AIModel:
                 response = response.replace("{city_part}", f" in {entities['city']}")
             else:
                 response = response.replace("{city_part}", "")
+
+            # Handle filter part for view_slots_filtered
+            if best_intent == 'view_slots_filtered':
+                filter_parts = []
+                if 'city' in entities:
+                    filter_parts.append(f" in {entities['city']}")
+                if 'vehicle_type' in entities:
+                    filter_parts.append(f" for {entities['vehicle_type']}")
+                filter_part = ''.join(filter_parts) if filter_parts else ""
+                response = response.replace("{filter_part}", filter_part)
+            else:
+                response = response.replace("{filter_part}", "")
+
             return {
                 'intent': best_intent,
                 'response': response,
@@ -88,6 +109,30 @@ class AIModel:
                 if entity == 'city' and value in CITY_CORRECTIONS:
                     value = CITY_CORRECTIONS[value]
                 entities[entity] = value
+        # Extract 'this station' reference first
+        if re.search(r'this.*station[s]?', text, re.IGNORECASE) or re.search(r'\bthis\b', text, re.IGNORECASE):
+            entities['station'] = 'this'
+        else:
+            # Extract station name
+            station_match = re.search(r'(\w+) station', text, re.IGNORECASE)
+            if station_match:
+                entities['station'] = station_match.group(1).lower()
+
+        # Extract vehicle type from patterns like "bike slots", "car parking", etc.
+        vehicle_patterns = [
+            r'\b(bike|car|motorcycle|scooter|truck|vehicle)\b.*\b(slots?|parking)\b',
+            r'\b(slots?|parking)\b.*\b(bike|car|motorcycle|scooter|truck|vehicle)\b'
+        ]
+        for pattern in vehicle_patterns:
+            match = re.search(pattern, text, re.IGNORECASE)
+            if match:
+                # Find the vehicle type in the match groups
+                for group in match.groups():
+                    if group and group.lower() in ['bike', 'car', 'motorcycle', 'scooter', 'truck', 'vehicle']:
+                        entities['vehicle_type'] = group.lower()
+                        break
+                break
+
         return entities
 
 
@@ -99,13 +144,19 @@ class AIModel:
         self.logger.info(f"Getting AI response for session {session_id}: {text}")
         # Initialize session if not exists
         if session_id not in self.sessions:
-            self.sessions[session_id] = []
+            self.sessions[session_id] = {'history': [], 'context': {}}
 
         # Parse intent
         result = self.parse_intent(text)
 
+        # Handle 'this station' reference
+        if 'station' in result['entities'] and result['entities']['station'] == 'this':
+            last_station = self.sessions[session_id]['context'].get('last_station')
+            if last_station:
+                result['entities']['station'] = last_station
+
         # Use history for context (simple example: if unknown and previous was help, suggest again)
-        history = self.sessions[session_id]
+        history = self.sessions[session_id]['history']
         if result['intent'] == 'unknown' and history and 'help' in history[-1]['response'].lower():
             result['response'] = "Still need help? I can assist with booking slots, viewing bookings, etc."
 
@@ -129,6 +180,12 @@ class AIModel:
                 stations = proxy_result['data']
                 result['data'] = stations
                 if stations:
+                    city = result['entities'].get('city')
+                    if city:
+                        self.sessions[session_id]['context']['last_city'] = city
+                    # Store the first station as last_station for context
+                    if stations:
+                        self.sessions[session_id]['context']['last_station'] = stations[0]['stationName'].lower()
                     result['response'] = f"Here are the available parking stations in {result['entities'].get('city', 'your area')}:"
                     result['action'] = 'display'
                     result['screen'] = 'stations'
@@ -151,6 +208,39 @@ class AIModel:
                 result['screen'] = 'payments'
             else:
                 result['response'] = "Failed to fetch payment history."
+        elif result['intent'] == 'view_slots':
+            proxy_result = self.proxy_to_backend_with_token(result, token, session_id)
+            if proxy_result['status'] == 'success':
+                slots = proxy_result['data']
+                result['data'] = slots
+                if slots:
+                    # Use last mentioned station if available, else city
+                    last_station = self.sessions[session_id]['context'].get('last_station')
+                    last_city = self.sessions[session_id]['context'].get('last_city')
+                    if last_station:
+                        result['response'] = f"Here are the available slots at {last_station} station:"
+                    elif last_city:
+                        result['response'] = f"Here are the available slots in {last_city}:"
+                    else:
+                        result['response'] = "Here are the available slots:"
+                    result['action'] = 'display'
+                    result['screen'] = 'slots'
+                else:
+                    result['response'] = "No slots available."
+            else:
+                result['response'] = "Failed to fetch slots."
+        elif result['intent'] == 'view_slots_filtered':
+            proxy_result = self.proxy_to_backend_with_token(result, token, session_id)
+            if proxy_result['status'] == 'success':
+                slots = proxy_result['data']
+                result['data'] = slots
+                if slots:
+                    result['action'] = 'display'
+                    result['screen'] = 'slots'
+                else:
+                    result['response'] = "No slots available matching your criteria."
+            else:
+                result['response'] = "Failed to fetch slots."
         elif result['intent'] == 'emergency':
             proxy_result = self.proxy_to_backend_with_token(result, token, session_id)
             if proxy_result['status'] == 'success':
@@ -162,9 +252,9 @@ class AIModel:
                 result['response'] = "Failed to fetch emergency contacts."
 
         # Add to history
-        self.sessions[session_id].append({'user': text, 'response': result['response']})
+        self.sessions[session_id]['history'].append({'user': text, 'response': result['response']})
         # Keep last 10
-        self.sessions[session_id] = self.sessions[session_id][-10:]
+        self.sessions[session_id]['history'] = self.sessions[session_id]['history'][-10:]
 
         self.logger.info(f"Response for session {session_id}: {result}")
         return result
@@ -229,6 +319,87 @@ class AIModel:
             elif intent['intent'] == 'view_payment_history':
                 # Implement view payment history logic - placeholder
                 return {'status': 'success', 'data': 'Payment history fetched.'}
+            elif intent['intent'] == 'view_slots':
+                # Fetch slots for a specific station
+                entities = intent.get('entities', {})
+                station_id = entities.get('station', 'ST001')  # Default to ST001 if not specified
+
+                # Handle 'this' station reference
+                if station_id == 'this':
+                    last_station = self.sessions.get(session_id, {}).get('context', {}).get('last_station')
+                    if last_station:
+                        # Find station by name
+                        response = requests.get(f"{BACKEND_URL}/api/stations")
+                        response.raise_for_status()
+                        all_stations = response.json()
+                        station = next((s for s in all_stations if s.get('stationName') and isinstance(s['stationName'], str) and s['stationName'].lower() == last_station.lower()), None)
+                        if station:
+                            station_id = station['stationId']
+                        else:
+                            return {'status': 'error', 'message': f'Last station {last_station} not found'}
+                    else:
+                        return {'status': 'error', 'message': 'No previous station context available'}
+
+                # If station is mentioned by name, find its ID
+                elif station_id != 'ST001' and not station_id.startswith('ST'):
+                    response = requests.get(f"{BACKEND_URL}/api/stations")
+                    response.raise_for_status()
+                    all_stations = response.json()
+                    station = next((s for s in all_stations if s.get('stationName') and isinstance(s['stationName'], str) and s['stationName'].lower().startswith(station_id.split()[0])), None)
+                    if station:
+                        station_id = station['stationId']
+                    else:
+                        return {'status': 'error', 'message': f'Station {station_id} not found'}
+
+                # Fetch slots using the station ID
+                slots_response = requests.get(f"{BACKEND_URL}/api/slots/station/{station_id}")
+                slots_response.raise_for_status()
+                slots = slots_response.json()
+                self.logger.info(f"Successfully fetched {len(slots)} slots for station {station_id}")
+                return {'status': 'success', 'data': slots}
+            elif intent['intent'] == 'view_slots_filtered':
+                # Fetch filtered slots based on city and vehicle type
+                entities = intent.get('entities', {})
+                city = entities.get('city')
+                vehicle_type = entities.get('vehicle_type')
+
+                # Fetch stations by city if specified
+                if city:
+                    response = requests.get(f"{BACKEND_URL}/api/stations/search/{city}")
+                    response.raise_for_status()
+                    data = response.json()
+                    stations = data.get('stations', [])
+                else:
+                    # Fetch all stations if no city
+                    response = requests.get(f"{BACKEND_URL}/api/stations")
+                    response.raise_for_status()
+                    stations = response.json()
+
+                if not stations:
+                    return {'status': 'success', 'data': []}
+
+                # For each station, fetch slots and filter by vehicle_type if specified
+                all_filtered_slots = []
+                for station in stations:
+                    station_id = station.get('stationId')
+                    if station_id:
+                        try:
+                            slots_response = requests.get(f"{BACKEND_URL}/api/slots/station/{station_id}")
+                            slots_response.raise_for_status()
+                            slots = slots_response.json()
+                            # Filter by vehicle_type if specified
+                            if vehicle_type:
+                                slots = [slot for slot in slots if slot.get('type', '').lower() == vehicle_type.lower()]
+                            # Add station info to slots for context
+                            for slot in slots:
+                                slot['stationName'] = station.get('stationName', 'Unknown')
+                                slot['stationAddress'] = station.get('address', 'Unknown')
+                            all_filtered_slots.extend(slots)
+                        except Exception as e:
+                            self.logger.warning(f"Failed to fetch slots for station {station_id}: {e}")
+
+                self.logger.info(f"Successfully fetched {len(all_filtered_slots)} filtered slots")
+                return {'status': 'success', 'data': all_filtered_slots}
             elif intent['intent'] == 'emergency':
                 # Implement emergency contacts logic - placeholder
                 return {'status': 'success', 'data': 'Emergency contacts: Police - 100, Ambulance - 108.'}

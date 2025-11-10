@@ -6,6 +6,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 import 'package:flutter/foundation.dart' show kIsWeb;
 import 'dart:io';
 import 'bookings_page.dart';
+import 'profile_page.dart';
 import 'package:flutter_tts/flutter_tts.dart';
 import 'package:speech_to_text/speech_to_text.dart' as stt;
 import 'dart:async';
@@ -30,6 +31,8 @@ class _ChatbotPageState extends State<ChatbotPage> {
   Timer? _listenTimer;
   bool _voiceMode = false;
   bool _wakeWordListening = false;
+  Map<String, dynamic>? _lastStationData;
+  Map<String, dynamic>? _lastSlotData;
 
   void _scrollToBottom() {
     if (_scrollController.hasClients) {
@@ -97,6 +100,9 @@ class _ChatbotPageState extends State<ChatbotPage> {
       case 'search':
         // Assuming search is part of home page or a separate screen
         Navigator.pushNamed(context, '/search');
+        break;
+      case 'profile':
+        Navigator.pushNamed(context, '/profile');
         break;
       default:
         // Handle unknown screens or show a message
@@ -331,9 +337,21 @@ class _ChatbotPageState extends State<ChatbotPage> {
     // Reload token in case it changed
     await _loadTokenAndSession();
 
+    // Determine AI service URL based on platform
+    String aiServiceUrl;
+    if (kIsWeb) {
+      aiServiceUrl = 'http://localhost:8000/chat';
+    } else if (Platform.isAndroid) {
+      aiServiceUrl = 'http://10.0.2.2:8000/chat';
+    } else if (Platform.isIOS) {
+      aiServiceUrl = 'http://localhost:8000/chat';
+    } else {
+      aiServiceUrl = 'http://localhost:8000/chat'; // default fallback
+    }
+
     try {
       final response = await http.post(
-        Uri.parse('http://localhost:8000/chat'),
+        Uri.parse(aiServiceUrl),
         headers: {'Content-Type': 'application/json'},
         body: jsonEncode({
           'text': userMessage,
@@ -350,8 +368,20 @@ class _ChatbotPageState extends State<ChatbotPage> {
         final screen = data['screen'];
         final navData = data['data'];
 
+        // Debug prints
+        print('AI Response: ${data.toString()}');
+        print(
+            'Action: $action, Screen: $screen, Data: ${navData != null ? 'has data' : 'no data'}');
+
         // Handle navigation based on action and screen
         if (action == 'navigate' && screen != null) {
+          // Add the bot response message before navigating
+          setState(() {
+            _messages.add({'sender': 'bot', 'text': botResponse});
+          });
+          // Speak the response
+          await _flutterTts.speak(botResponse);
+          // Then perform navigation
           _navigateToScreen(screen, data: navData);
         } else if (action == 'cancel' || action == 'logout') {
           _handleAction(action, screen ?? '', navData);
@@ -394,6 +424,11 @@ class _ChatbotPageState extends State<ChatbotPage> {
         } else if (action == 'display' &&
             screen == 'stations' &&
             navData != null) {
+          // Store station data for context
+          if (navData is List && navData.isNotEmpty) {
+            _lastStationData = navData[0]; // Store first station for context
+          }
+
           // Display stations directly in chat
           setState(() {
             List<Map<String, dynamic>> newMessages = List.from(_messages);
@@ -408,16 +443,52 @@ class _ChatbotPageState extends State<ChatbotPage> {
                     'Price: ₹${station['price'] ?? 'N/A'}';
                 newMessages.add({'sender': 'bot', 'text': stationText});
               }
-              // Add "View Details" button
+              // Add "View Slots" button instead of generic "View Details"
               newMessages.add({
                 'sender': 'bot',
-                'text': 'View Details',
-                'action': 'view_details_stations',
+                'text': 'View Slots',
+                'action': 'view_slots',
                 'data': navData
               });
             } else {
               newMessages
                   .add({'sender': 'bot', 'text': 'No parking stations found.'});
+            }
+            _messages = newMessages;
+          });
+          // Speak the response
+          await _flutterTts.speak(botResponse);
+        } else if (action == 'display' &&
+            screen == 'slots' &&
+            navData != null) {
+          // Store slot data for context
+          if (navData is List && navData.isNotEmpty) {
+            _lastSlotData = navData[0]; // Store first slot for context
+          }
+
+          // Debug print for slots data
+          print('Slots data received: $navData');
+
+          // Display slots directly in chat
+          setState(() {
+            List<Map<String, dynamic>> newMessages = List.from(_messages);
+            newMessages.add({'sender': 'bot', 'text': botResponse});
+            if (navData is List && navData.isNotEmpty) {
+              String slotsList = 'Available Slots:\n\n';
+              for (var slot in navData) {
+                slotsList +=
+                    '• Slot ID: ${slot['slotId'] ?? 'N/A'} | Type: ${slot['type'] ?? 'N/A'} | Price: ₹${slot['price'] ?? 'N/A'} | Status: ${slot['availability'] ?? 'N/A'}\n';
+              }
+              newMessages.add({'sender': 'bot', 'text': slotsList});
+              // Add "Book Slot" button or similar
+              newMessages.add({
+                'sender': 'bot',
+                'text': 'Select a Slot to Book',
+                'action': 'book_slot',
+                'data': navData
+              });
+            } else {
+              newMessages.add({'sender': 'bot', 'text': 'No slots available.'});
             }
             _messages = newMessages;
           });
@@ -515,6 +586,13 @@ class _ChatbotPageState extends State<ChatbotPage> {
                               _navigateToScreen('bookings', data: msg['data']);
                             },
                             child: const Text('View Details'),
+                          ),
+                        if (hasAction && msg['action'] == 'book_slot')
+                          ElevatedButton(
+                            onPressed: () {
+                              _navigateToScreen('book_slot', data: msg['data']);
+                            },
+                            child: const Text('Book a Slot'),
                           ),
                       ],
                     ),

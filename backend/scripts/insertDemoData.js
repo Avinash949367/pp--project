@@ -1,6 +1,6 @@
 const mongoose = require('mongoose');
 const bcrypt = require('bcryptjs');
-const Stations = require('../models/Stations');
+const Station = require('../models/Station');
 const StoreAdminCredentials = require('../models/StoreAdminCredentials');
 
 // Demo data
@@ -27,12 +27,12 @@ async function insertDemoData() {
     console.log('Connected to MongoDB');
 
     // Clear existing demo data
-    await Stations.deleteMany({ email: "demo@parkpro.com" });
+    await Station.deleteMany({ email: "demo@parkpro.com" });
     await StoreAdminCredentials.deleteMany({ email: "demo@parkpro.com" });
     console.log('Cleared existing demo data');
 
     // Insert demo station
-    const station = new Stations(demoStation);
+    const station = new Station(demoStation);
     const savedStation = await station.save();
     console.log('Demo station created:', savedStation._id);
 

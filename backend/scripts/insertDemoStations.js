@@ -9,26 +9,31 @@ mongoose.connect(process.env.MONGODB_URI || 'mongodb://localhost:27017/parkpro',
 
 const demoStations = [
     {
+        stationId: "ST001",
         name: "Central Park Station",
         location: "123 Main Street, Downtown",
         status: "received"
     },
     {
+        stationId: "ST002",
         name: "Westside Parking",
         location: "456 West Avenue, Westside",
         status: "received"
     },
     {
+        stationId: "ST003",
         name: "East End Garage",
         location: "789 East Boulevard, Eastside",
         status: "active"
     },
     {
+        stationId: "ST004",
         name: "North Plaza",
         location: "321 North Road, Northside",
         status: "active"
     },
     {
+        stationId: "ST005",
         name: "South Terminal",
         location: "654 South Street, Southside",
         status: "received"

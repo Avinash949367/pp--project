@@ -8,9 +8,21 @@ INTENTS = {
         "params": {}
     },
     "display_stations": {
-        "keywords": ["check", "available", "parking", "stations", "location", "in", "see", "show", "list", "view", "find"],
+        "keywords": ["check", "available", "parking", "stations", "station", "location", "in", "see", "show", "list", "view", "find"],
         "action": "display",
         "screen": "stations",
+        "params": {}
+    },
+    "view_slots": {
+        "keywords": ["slots", "slot", "available slots", "available slot", "show slots", "show slot", "list slots", "list slot", "view slots", "view slot", "parking slots", "parking slot"],
+        "action": "display",
+        "screen": "slots",
+        "params": {}
+    },
+    "view_slots_filtered": {
+        "keywords": ["slots", "slot", "available slots", "available slot", "show slots", "show slot", "list slots", "list slot", "view slots", "view slot", "parking slots", "parking slot", "find", "search", "get", "parking", "bike", "car", "motorcycle", "scooter", "truck", "vehicle"],
+        "action": "display",
+        "screen": "slots",
         "params": {}
     },
     "navigate_search_stations": {
@@ -20,7 +32,7 @@ INTENTS = {
         "params": {}
     },
     "navigate_bookings": {
-        "keywords": ["bookings", "my bookings", "reservations", "history", "view bookings", "past", "previous", "show bookings"],
+        "keywords": ["bookings", "my bookings", "reservations", "history", "view bookings", "view", "past", "previous", "show bookings"],
         "action": "display",
         "screen": "bookings",
         "params": {}
@@ -84,6 +96,12 @@ INTENTS = {
         "action": None,
         "screen": None,
         "params": {}
+    },
+    "greet": {
+        "keywords": ["hi", "hello", "hey", "greetings", "good morning", "good afternoon", "good evening"],
+        "action": None,
+        "screen": None,
+        "params": {}
     }
 }
 
@@ -99,13 +117,17 @@ ENTITY_RULES = {
     'duration': r'for (\d+) hours?',
     'booking_id': r'booking (\d+)',
     'amount': r'amount (\d+)',
-    'vehicle': r'vehicle (\w+)'
+    'vehicle': r'vehicle (\w+)',
+    'station': r'station (\w+)',
+    'vehicle_type': r'(bike|car|motorcycle|scooter|truck|vehicle) slots?'
 }
 
 RESPONSE_TEMPLATES = {
     'navigate_book_slot': "Navigating to book a slot{city_part}.",
     'navigate_search_stations': "Searching for stations{city_part}.",
     'display_stations': "Here are the available parking stations{city_part}:",
+    'view_slots': "Here are the available slots:",
+    'view_slots_filtered': "Here are the available slots{filter_part}:",
     'navigate_bookings': "Showing your bookings.",
     'navigate_profile': "Opening your profile.",
     'navigate_home': "Going to home screen.",
@@ -117,5 +139,6 @@ RESPONSE_TEMPLATES = {
     'feedback': "Opening feedback form.",
     'emergency': "Displaying emergency contacts.",
     'help': "I can help you with: booking slots, viewing bookings, navigating to profile, searching stations, cancelling bookings, viewing payment history, and more. What would you like to do?",
+    'greet': "Hello! How can I assist you with parking today?",
     'unknown': "I'm sorry, I didn't understand that. Could you please rephrase or provide more details? Try saying 'help' for available commands."
 }

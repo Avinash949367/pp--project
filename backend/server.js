@@ -2,6 +2,7 @@ require('dotenv').config();  // make sure dotenv is loaded
 
 const express = require('express');
 const path = require('path');
+const http = require('http');
 const connectDB = require('./config/db');
 const passport = require('passport');
 const session = require('express-session');
@@ -89,6 +90,35 @@ app.use('/api/contacts', contactRoutes);
 app.use('/api/slots', slotRoutes);
 app.use('/api/reviews', reviewRoutes);  // Added review routes
 app.use('/api/fastag', fastagRoutes);
+
+// Proxy route for AI chat
+app.post('/api/chat', (req, res) => {
+  const body = JSON.stringify(req.body);
+  const options = {
+    hostname: 'localhost',
+    port: 8000,
+    path: '/chat',
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      'Content-Length': Buffer.byteLength(body)
+    }
+  };
+
+  const proxyReq = http.request(options, (proxyRes) => {
+    res.writeHead(proxyRes.statusCode, proxyRes.headers);
+    proxyRes.pipe(res);
+  });
+
+  proxyReq.on('error', (e) => {
+    console.error(`Problem with request: ${e.message}`);
+    res.status(500).send('Proxy error');
+  });
+
+  // Send the request body as JSON
+  proxyReq.write(body);
+  proxyReq.end();
+});
 
 // Start the server
 const PORT = process.env.PORT || 5000;

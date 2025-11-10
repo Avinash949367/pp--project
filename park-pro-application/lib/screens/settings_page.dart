@@ -62,7 +62,7 @@ class _SettingsPageState extends State<SettingsPage> {
   }
 
   Future<bool> _verifyCurrentPassword(String email, String password) async {
-    final url = Uri.parse('http://localhost:8000/login');
+    final url = Uri.parse('http://localhost:5000/api/auth/login');
     try {
       final response = await http.post(
         url,
@@ -79,7 +79,8 @@ class _SettingsPageState extends State<SettingsPage> {
   }
 
   Future<bool> _sendVerificationCode(String email) async {
-    final url = Uri.parse('http://localhost:8000/send-verification-code');
+    final url =
+        Uri.parse('http://localhost:5000/api/auth/send-verification-code');
     try {
       final response = await http.post(
         url,
@@ -97,7 +98,8 @@ class _SettingsPageState extends State<SettingsPage> {
 
   Future<bool> _verifyCodeAndChangePassword(
       String email, String code, String newPassword) async {
-    final url = Uri.parse('http://localhost:8000/change-password-with-code');
+    final url =
+        Uri.parse('http://localhost:5000/api/auth/change-password-with-code');
     try {
       final response = await http.post(
         url,

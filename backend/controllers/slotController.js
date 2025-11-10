@@ -14,8 +14,11 @@ exports.getSlotsByStation = async (req, res) => {
         const { stationId } = req.params;
         const Station = require('../models/Station');
 
-        // Find station by stationId string field
-        const station = await Station.findOne({ stationId: stationId });
+        // Find station by stationId string field or by _id
+        let station = await Station.findOne({ stationId: stationId });
+        if (!station) {
+            station = await Station.findById(stationId);
+        }
         if (!station) {
             return res.status(404).json({ message: 'Station not found' });
         }

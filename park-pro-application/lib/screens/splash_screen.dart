@@ -21,14 +21,24 @@ class _SplashScreenState extends State<SplashScreen> {
   }
 
   Future<void> _checkLoginStatus() async {
-    final prefs = await SharedPreferences.getInstance();
-    final userEmail = prefs.getString('userEmail');
-    if (userEmail != null && userEmail.isNotEmpty) {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final userEmail = prefs.getString('userEmail');
+      final token = prefs.getString('token');
+
+      // Check both email and token for better security
+      final bool isAuthenticated = userEmail != null &&
+          userEmail.isNotEmpty &&
+          token != null &&
+          token.isNotEmpty;
+
       setState(() {
-        _isLoggedIn = true;
+        _isLoggedIn = isAuthenticated;
         _isLoading = false;
       });
-    } else {
+    } catch (e) {
+      // Handle any errors gracefully
+      print('Error checking login status: $e');
       setState(() {
         _isLoggedIn = false;
         _isLoading = false;
@@ -40,14 +50,43 @@ class _SplashScreenState extends State<SplashScreen> {
     Navigator.pushReplacementNamed(context, '/quickbook');
   }
 
+  Widget _buildLoadingScreen() {
+    return Scaffold(
+      backgroundColor: const Color(0xFF111827),
+      body: Center(
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            // You can add your app logo here
+            Image.asset(
+              'assets/images/logo.png',
+              width: 100,
+              height: 100,
+              fit: BoxFit.contain,
+            ),
+            const SizedBox(height: 20),
+            const CircularProgressIndicator(
+              valueColor: AlwaysStoppedAnimation<Color>(Color(0xFF2979FF)),
+            ),
+            const SizedBox(height: 20),
+            const Text(
+              'Park-Pro+',
+              style: TextStyle(
+                color: Colors.white,
+                fontSize: 24,
+                fontWeight: FontWeight.bold,
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     if (_isLoading) {
-      return const Scaffold(
-        body: Center(
-          child: CircularProgressIndicator(),
-        ),
-      );
+      return _buildLoadingScreen();
     }
 
     if (_isLoggedIn) {
@@ -55,11 +94,7 @@ class _SplashScreenState extends State<SplashScreen> {
       WidgetsBinding.instance.addPostFrameCallback((_) {
         Navigator.pushReplacementNamed(context, '/quickbook');
       });
-      return const Scaffold(
-        body: Center(
-          child: CircularProgressIndicator(),
-        ),
-      );
+      return _buildLoadingScreen();
     }
 
     return Scaffold(

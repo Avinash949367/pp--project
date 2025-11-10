@@ -7,7 +7,7 @@ import 'dart:convert';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:speech_to_text/speech_to_text.dart' as stt;
 
-// Import your pages
+// Import your pages hello
 import 'screens/favorites_page.dart';
 import 'screens/booking_page.dart';
 import 'screens/bookings_page.dart';
@@ -16,6 +16,7 @@ import 'screens/notification_page.dart';
 import 'screens/profile_page.dart';
 import 'screens/settings_page.dart'; // Added import for settings page
 import 'screens/book_slot_page.dart'; // New import for book slot page
+import 'screens/chatbot_page.dart'; // Added import for chatbot page
 import 'screens/splash_screen.dart';
 
 void main() {
@@ -73,15 +74,17 @@ class MyApp extends StatelessWidget {
       home: const SplashScreen(),
       routes: {
         '/settings': (context) =>
-            const SettingsPage(), // Added route for settings page
+            SettingsPage(), // Added route for settings page
         '/book-slot': (context) =>
-            const BookSlotPage(), // Added route for book slot page
+            BookSlotPage(), // Added route for book slot page
         '/quickbook': (context) =>
-            const QuickBookPage(), // Added route for main landing page after login
+            QuickBookPage(), // Added route for main landing page after login
         '/bookings': (context) =>
-            const BookingsPage(bookings: []), // Added route for bookings page
+            BookingsPage(bookings: []), // Added route for bookings page
         '/search': (context) =>
-            const BookSlotPage(), // Assuming search is handled by book slot page
+            BookSlotPage(), // Assuming search is handled by book slot page
+        '/profile': (context) => ProfilePage(), // Added route for profile page
+        '/chatbot': (context) => ChatbotPage(), // Added route for chatbot page
       },
     );
   }
@@ -96,12 +99,16 @@ class QuickBookPage extends StatefulWidget {
 
 class _QuickBookPageState extends State<QuickBookPage> {
   int _currentIndex = 0;
+  bool _isLoadingBookings = false;
+  bool _isLoadingSpots = false;
+  List<Map<String, dynamic>> _parkingSpots = [];
 
-  final List<Widget> _pages = const [
+  final List<Widget> _pages = [
     QuickBookHome(),
     FavoritesPage(),
-    BookingPage(),
+    ChatbotPage(),
     FastagPage(),
+    ChatbotPage(),
   ];
 
   void _onItemTapped(int index) async {
@@ -127,26 +134,29 @@ class _QuickBookPageState extends State<QuickBookPage> {
     final userEmail = prefs.getString('userEmail');
     if (userEmail == null) {
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Please log in to view bookings')),
+        const SnackBar(content: Text('Please log in to view bookings')),
       );
       return;
     }
+
     // Fetch user ID
     final userId = await _fetchUserIdByEmail(userEmail);
     if (userId == null) {
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Failed to fetch user data')),
+        const SnackBar(content: Text('Failed to fetch user data')),
       );
       return;
     }
+
     // Fetch bookings
     final bookings = await _fetchBookings(userId);
     if (bookings == null) {
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Failed to load bookings')),
+        const SnackBar(content: Text('Failed to load bookings')),
       );
       return;
     }
+
     // Navigate to bookings page
     Navigator.push(
       context,
@@ -157,7 +167,7 @@ class _QuickBookPageState extends State<QuickBookPage> {
   }
 
   Future<String?> _fetchUserIdByEmail(String email) async {
-    final url = Uri.parse('http://localhost:5000/api/users/email/$email');
+    final url = Uri.parse('http://127.0.0.1:5000/api/users/email/$email');
     try {
       final response = await http.get(url);
       if (response.statusCode == 200) {
@@ -171,7 +181,7 @@ class _QuickBookPageState extends State<QuickBookPage> {
   }
 
   Future<List<Map<String, dynamic>>?> _fetchBookings(String userId) async {
-    final url = Uri.parse('http://localhost:5000/api/user/bookings');
+    final url = Uri.parse('http://127.0.0.1:5000/api/user/bookings');
     try {
       final prefs = await SharedPreferences.getInstance();
       final token = prefs.getString('token');
@@ -179,12 +189,14 @@ class _QuickBookPageState extends State<QuickBookPage> {
         print('No token found in SharedPreferences');
         return null;
       }
+
       final response = await http.get(
         url,
         headers: {
           'Authorization': 'Bearer $token',
         },
       );
+
       if (response.statusCode == 200) {
         final data = json.decode(response.body);
         final bookings = data['bookings'];
@@ -200,6 +212,31 @@ class _QuickBookPageState extends State<QuickBookPage> {
       print('Error fetching bookings: $e');
     }
     return null;
+  }
+
+  Future<void> _loadParkingSpots() async {
+    final url = Uri.parse('http://127.0.0.1:5000/api/stations');
+    try {
+      final response = await http.get(url);
+      if (response.statusCode == 200) {
+        final data = json.decode(response.body) as List;
+        setState(() {
+          _parkingSpots = data
+              .take(3)
+              .map((spot) => {
+                    'name': spot['name'],
+                    'price': '₹${spot['price_per_hour']}/hr',
+                    'distance': 'Nearby',
+                    'available': (spot['available_spots'] as int?) ?? 0
+                  })
+              .toList();
+          _isLoadingSpots = false;
+        });
+      }
+    } catch (e) {
+      print('Error loading parking spots: $e');
+      setState(() => _isLoadingSpots = false);
+    }
   }
 
   @override
@@ -263,7 +300,7 @@ class _QuickBookPageState extends State<QuickBookPage> {
                   ),
                 ],
               ),
-              const SizedBox(width: 48), // The dummy child for spacing the FAB
+              const SizedBox(width: 48),
               Column(
                 mainAxisSize: MainAxisSize.min,
                 children: [
@@ -289,16 +326,44 @@ class _QuickBookPageState extends State<QuickBookPage> {
                 children: [
                   IconButton(
                     padding: EdgeInsets.zero,
-                    icon: const Icon(
+                    icon: Icon(
                       Icons.local_parking,
-                      color: Colors.grey,
+                      color: _currentIndex == 3
+                          ? const Color(0xFF2979FF)
+                          : Colors.grey,
                     ),
                     onPressed: () => _onItemTapped(4),
                   ),
-                  const Text(
+                  Text(
                     'FASTag',
                     style: TextStyle(
-                      color: Colors.grey,
+                      color: _currentIndex == 3
+                          ? const Color(0xFF2979FF)
+                          : Colors.grey,
+                      fontSize: 12,
+                    ),
+                  ),
+                ],
+              ),
+              Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  IconButton(
+                    padding: EdgeInsets.zero,
+                    icon: Icon(
+                      Icons.chat,
+                      color: _currentIndex == 4
+                          ? const Color(0xFF2979FF)
+                          : Colors.grey,
+                    ),
+                    onPressed: () => _onItemTapped(5),
+                  ),
+                  Text(
+                    'Chatbot',
+                    style: TextStyle(
+                      color: _currentIndex == 4
+                          ? const Color(0xFF2979FF)
+                          : Colors.grey,
                       fontSize: 12,
                     ),
                   ),
@@ -311,7 +376,7 @@ class _QuickBookPageState extends State<QuickBookPage> {
       floatingActionButtonLocation: FloatingActionButtonLocation.centerDocked,
       floatingActionButton: FloatingActionButton(
         onPressed: () => _onItemTapped(2),
-        backgroundColor: const Color(0xFF2E7D32), // Green color as in image
+        backgroundColor: const Color(0xFF2E7D32),
         child: const Icon(Icons.book_online, size: 30),
         shape: const CircleBorder(),
       ),
@@ -323,7 +388,7 @@ class _QuickBookPageState extends State<QuickBookPage> {
 /// HOME PAGE
 /// ----------------------
 class QuickBookHome extends StatefulWidget {
-  const QuickBookHome({super.key});
+  const QuickBookHome({Key? key}) : super(key: key);
 
   @override
   State<QuickBookHome> createState() => _QuickBookHomeState();
@@ -354,8 +419,7 @@ class _QuickBookHomeState extends State<QuickBookHome>
   bool _isListening = false;
   String _text = '';
   late TextEditingController _textController;
-  final List<Map<String, dynamic>> _messages =
-      []; // {'sender':'user/bot', 'text': '...', 'isLoading': bool}
+  final List<Map<String, dynamic>> _messages = [];
   late ScrollController _scrollController;
 
   @override
@@ -390,7 +454,6 @@ class _QuickBookHomeState extends State<QuickBookHome>
     try {
       bool serviceEnabled = await Geolocator.isLocationServiceEnabled();
       if (!serviceEnabled) {
-        // Location services are not enabled
         setState(() => _isLoadingLocation = false);
         return;
       }
@@ -399,14 +462,12 @@ class _QuickBookHomeState extends State<QuickBookHome>
       if (permission == LocationPermission.denied) {
         permission = await Geolocator.requestPermission();
         if (permission == LocationPermission.denied) {
-          // Permissions are denied
           setState(() => _isLoadingLocation = false);
           return;
         }
       }
 
       if (permission == LocationPermission.deniedForever) {
-        // Permissions are denied forever
         setState(() => _isLoadingLocation = false);
         return;
       }
@@ -419,26 +480,11 @@ class _QuickBookHomeState extends State<QuickBookHome>
         _center = LatLng(position.latitude, position.longitude);
         _isLoadingLocation = false;
       });
-      // Fetch recent bookings after location is set
+
       await _loadRecentBookings();
     } catch (e) {
       setState(() => _isLoadingLocation = false);
     }
-  }
-
-  Future<String?> _fetchUserIdByEmail(String email) async {
-    final url = Uri.parse('http://localhost:5000/api/users/email/$email');
-    try {
-      final response = await http.get(url);
-      if (response.statusCode == 200) {
-        final data = json.decode(response.body);
-        return data['_id'];
-      }
-    } catch (e) {
-      print('Error fetching user ID by email: $e');
-      setState(() => _isLoadingBookings = false);
-    }
-    return null;
   }
 
   Future<void> _loadRecentBookings() async {
@@ -450,20 +496,15 @@ class _QuickBookHomeState extends State<QuickBookHome>
         setState(() => _isLoadingBookings = false);
         return;
       }
-      print('User email from SharedPreferences: $userEmail');
+
       final userId = await _fetchUserIdByEmail(userEmail);
       if (userId == null) {
         print('User ID not found for email: $userEmail');
         setState(() => _isLoadingBookings = false);
         return;
       }
-      print('User ID fetched: $userId');
+
       final bookings = await _fetchRecentBookings(userId);
-      if (bookings == null) {
-        print('No bookings found for user ID: $userId');
-      } else {
-        print('Bookings fetched: ${bookings.length}');
-      }
       setState(() {
         _recentBookings = bookings ?? [];
         _isLoadingBookings = false;
@@ -474,23 +515,38 @@ class _QuickBookHomeState extends State<QuickBookHome>
     }
   }
 
+  Future<String?> _fetchUserIdByEmail(String email) async {
+    final url = Uri.parse('http://127.0.0.1:5000/api/users/email/$email');
+    try {
+      final response = await http.get(url);
+      if (response.statusCode == 200) {
+        final data = json.decode(response.body);
+        return data['_id'];
+      }
+    } catch (e) {
+      print('Error fetching user ID by email: $e');
+    }
+    return null;
+  }
+
   Future<List<Map<String, dynamic>>?> _fetchRecentBookings(
       String userId) async {
-    final url = Uri.parse('http://localhost:5000/api/user/bookings');
+    final url = Uri.parse('http://127.0.0.1:5000/api/user/bookings');
     try {
       final prefs = await SharedPreferences.getInstance();
       final token = prefs.getString('token');
       if (token == null) {
         print('No token found in SharedPreferences');
-        setState(() => _isLoadingBookings = false);
         return null;
       }
+
       final response = await http.get(
         url,
         headers: {
           'Authorization': 'Bearer $token',
         },
       );
+
       if (response.statusCode == 200) {
         final data = json.decode(response.body);
         final bookings = data['bookings'] ?? [];
@@ -500,13 +556,12 @@ class _QuickBookHomeState extends State<QuickBookHome>
       }
     } catch (e) {
       print('Error fetching recent bookings: $e');
-      setState(() => _isLoadingBookings = false);
     }
     return null;
   }
 
   Future<void> _loadParkingSpots() async {
-    final url = Uri.parse('http://localhost:5000/api/stations');
+    final url = Uri.parse('http://127.0.0.1:5000/api/stations');
     try {
       final response = await http.get(url);
       if (response.statusCode == 200) {
@@ -565,22 +620,21 @@ class _QuickBookHomeState extends State<QuickBookHome>
     setState(() {
       _messages.add({'sender': 'user', 'text': userText});
       _textController.clear();
-      // Add loading indicator for bot response
       _messages.add(
           {'sender': 'bot', 'text': 'Fetching data...', 'isLoading': true});
     });
 
-    // Call AI service API
     try {
       final prefs = await SharedPreferences.getInstance();
       String sessionId = prefs.getString('userEmail') ?? 'default';
       String token = prefs.getString('token') ?? '';
       final response = await http.post(
-        Uri.parse('http://localhost:8000/chat'),
+        Uri.parse('http://127.0.0.1:5000/api/chat'),
         headers: {'Content-Type': 'application/json'},
         body: json.encode(
             {'text': userText, 'session_id': sessionId, 'token': token}),
       );
+
       if (response.statusCode == 200) {
         final data = json.decode(response.body);
         final botResponse =
@@ -590,10 +644,9 @@ class _QuickBookHomeState extends State<QuickBookHome>
         final navData = data['data'];
 
         setState(() {
-          // Remove loading message and add actual response
           _messages.removeLast();
           _messages.add({'sender': 'bot', 'text': botResponse});
-          // Handle displaying booking data if present
+
           if (action == 'display' &&
               screen == 'bookings' &&
               navData != null &&
@@ -607,7 +660,6 @@ class _QuickBookHomeState extends State<QuickBookHome>
                   'Status: ${booking['status'] ?? 'N/A'}';
               _messages.add({'sender': 'bot', 'text': bookingText});
             }
-            // Add "View Details" button
             _messages.add({
               'sender': 'bot',
               'text': 'View Details',
@@ -628,15 +680,32 @@ class _QuickBookHomeState extends State<QuickBookHome>
                   'Price: ₹${station['price'] ?? 'N/A'}';
               _messages.add({'sender': 'bot', 'text': stationText});
             }
-            // Add "View Details" button
             _messages.add({
               'sender': 'bot',
               'text': 'View Details',
               'action': 'view_details_stations',
               'data': navData
             });
+          } else if (action == 'display' &&
+              screen == 'slots' &&
+              navData != null &&
+              navData is List &&
+              navData.isNotEmpty) {
+            String slotsList = 'Available Slots:\n\n';
+            for (var slot in navData) {
+              slotsList +=
+                  '• Slot ID: ${slot['slotId'] ?? 'N/A'} | Type: ${slot['type'] ?? 'N/A'} | Price: ₹${slot['price'] ?? 'N/A'} | Status: ${slot['availability'] ?? 'N/A'}\n';
+            }
+            _messages.add({'sender': 'bot', 'text': slotsList});
+            _messages.add({
+              'sender': 'bot',
+              'text': 'Select a Slot to Book',
+              'action': 'book_slot',
+              'data': navData
+            });
           }
         });
+
         _scrollController.animateTo(
           _scrollController.position.maxScrollExtent,
           duration: const Duration(milliseconds: 300),
@@ -644,7 +713,6 @@ class _QuickBookHomeState extends State<QuickBookHome>
         );
       } else {
         setState(() {
-          // Remove loading message and add error response
           _messages.removeLast();
           _messages.add(
               {'sender': 'bot', 'text': 'Sorry, I couldn\'t process that.'});
@@ -657,7 +725,6 @@ class _QuickBookHomeState extends State<QuickBookHome>
       }
     } catch (e) {
       setState(() {
-        // Remove loading message and add error response
         _messages.removeLast();
         _messages
             .add({'sender': 'bot', 'text': 'Error connecting to AI service.'});
@@ -669,21 +736,6 @@ class _QuickBookHomeState extends State<QuickBookHome>
       );
     }
   }
-
-  final List<Map<String, dynamic>> filteredParkingSpots = [
-    {
-      'name': 'Downtown Parking',
-      'price': '₹120',
-      'distance': '0.8 km',
-      'available': 5
-    },
-    {
-      'name': 'City Center Garage',
-      'price': '₹150',
-      'distance': '1.2 km',
-      'available': 3
-    },
-  ];
 
   final List<Map<String, dynamic>> filteredServices = [
     {
@@ -777,7 +829,7 @@ class _QuickBookHomeState extends State<QuickBookHome>
                       style: const TextStyle(color: Colors.white),
                       decoration: InputDecoration(
                         labelText: 'Min Price',
-                        border: OutlineInputBorder(),
+                        border: const OutlineInputBorder(),
                         fillColor: Colors.grey[850],
                         filled: true,
                         labelStyle: const TextStyle(color: Colors.grey),
@@ -790,7 +842,7 @@ class _QuickBookHomeState extends State<QuickBookHome>
                       style: const TextStyle(color: Colors.white),
                       decoration: InputDecoration(
                         labelText: 'Max Price',
-                        border: OutlineInputBorder(),
+                        border: const OutlineInputBorder(),
                         fillColor: Colors.grey[850],
                         filled: true,
                         labelStyle: const TextStyle(color: Colors.grey),
@@ -903,16 +955,14 @@ class _QuickBookHomeState extends State<QuickBookHome>
                       Navigator.push(
                           context,
                           MaterialPageRoute(
-                              builder: (_) => const NotificationsPage()));
+                              builder: (_) => NotificationsPage()));
                     },
                   ),
                   IconButton(
                     icon: const Icon(Icons.person, color: Colors.white),
                     onPressed: () {
-                      Navigator.push(
-                          context,
-                          MaterialPageRoute(
-                              builder: (_) => const ProfilePage()));
+                      Navigator.push(context,
+                          MaterialPageRoute(builder: (_) => ProfilePage()));
                     },
                   ),
                 ],

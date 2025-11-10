@@ -23,25 +23,20 @@ class _LoginWidgetState extends State<LoginWidget> {
     final email = emailController.text;
     final password = passwordController.text;
 
-    String backendUrl;
-    if (kIsWeb) {
-      backendUrl = 'http://localhost:5000/login';
-    } else if (Platform.isAndroid) {
-      backendUrl = 'http://10.0.2.2:5000/login';
-    } else if (Platform.isIOS) {
-      backendUrl = 'http://localhost:5000/login';
-    } else {
-      backendUrl = 'http://localhost:5000/login'; // default fallback
-    }
+    String backendUrl = 'http://localhost:5000/login';
 
     final url = Uri.parse(backendUrl);
+    print('Attempting login to: $backendUrl');
 
     try {
+      print('Sending POST request...');
       final response = await http.post(
         url,
-        headers: {'Content-Type': 'application/x-www-form-urlencoded'},
-        body: {'email': email, 'password': password},
+        headers: {'Content-Type': 'application/json'},
+        body: json.encode({'email': email, 'password': password}),
       );
+      print('Response status: ${response.statusCode}');
+      print('Response body: ${response.body}');
 
       if (response.statusCode == 200) {
         final data = json.decode(response.body);
@@ -50,11 +45,14 @@ class _LoginWidgetState extends State<LoginWidget> {
         await prefs.setString('userName', data['user']['name'] ?? 'User');
         await prefs.setString('userId', data['user']['_id']);
         await prefs.setString('token', data['token']);
+        print('Login successful, calling onLoginSuccess');
         widget.onLoginSuccess();
       } else {
+        print('Login failed with status: ${response.statusCode}');
         _showError('Login failed: ${response.statusCode}');
       }
     } catch (e) {
+      print('Error during login: $e');
       _showError('Error: $e');
     }
   }
@@ -92,14 +90,14 @@ class _LoginWidgetState extends State<LoginWidget> {
   Future<bool> _sendVerificationCode(String email) async {
     String backendUrl;
     if (kIsWeb) {
-      backendUrl = 'http://localhost:5000/send-verification-code';
+      backendUrl = 'http://localhost:5000/login';
     } else if (Platform.isAndroid) {
-      backendUrl = 'http://10.0.2.2:5000/send-verification-code';
+      backendUrl = 'http://10.0.2.2:5000/api/login';
     } else if (Platform.isIOS) {
-      backendUrl = 'http://localhost:5000/send-verification-code';
+      backendUrl = 'http://localhost:5000/login';
     } else {
       backendUrl =
-          'http://localhost:5000/send-verification-code'; // default fallback
+          'http://localhost:5000/api/auth/send-verification-code'; // default fallback
     }
     final url = Uri.parse(backendUrl);
     try {
@@ -121,14 +119,14 @@ class _LoginWidgetState extends State<LoginWidget> {
       String email, String code, String newPassword) async {
     String backendUrl;
     if (kIsWeb) {
-      backendUrl = 'http://localhost:5000/change-password-with-code';
+      backendUrl = 'http://localhost:5000/api/auth/change-password-with-code';
     } else if (Platform.isAndroid) {
-      backendUrl = 'http://10.0.2.2:5000/change-password-with-code';
+      backendUrl = 'http://10.0.2.2:5000/api/auth/change-password-with-code';
     } else if (Platform.isIOS) {
-      backendUrl = 'http://localhost:5000/change-password-with-code';
+      backendUrl = 'http://localhost:5000/api/auth/change-password-with-code';
     } else {
       backendUrl =
-          'http://localhost:5000/change-password-with-code'; // default fallback
+          'http://localhost:5000/api/auth/change-password-with-code'; // default fallback
     }
     final url = Uri.parse(backendUrl);
     try {
