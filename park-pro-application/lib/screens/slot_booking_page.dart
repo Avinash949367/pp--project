@@ -3,6 +3,8 @@ import 'package:http/http.dart' as http;
 import 'dart:convert';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:intl/intl.dart';
+import 'package:flutter/foundation.dart';
+import 'package:razorpay_flutter/razorpay_flutter.dart';
 
 class SlotBookingPage extends StatefulWidget {
   final dynamic slot;
@@ -17,19 +19,121 @@ class SlotBookingPage extends StatefulWidget {
 
 class _SlotBookingPageState extends State<SlotBookingPage> {
   DateTime _selectedDate = DateTime.now();
-  TimeOfDay _startTime = TimeOfDay(hour: 9, minute: 0);
-  TimeOfDay _endTime = TimeOfDay(hour: 10, minute: 0);
+  TimeOfDay _startTime = TimeOfDay(hour: 10, minute: 0);
+  TimeOfDay _endTime = TimeOfDay(hour: 11, minute: 0);
   List<dynamic> _vehicles = [];
   String? _selectedVehicleId;
+  String _selectedPaymentMethod = 'upi';
   bool _isLoading = false;
   bool _vehiclesLoading = false;
   String _errorMessage = '';
   String _vehiclesError = '';
+  late Razorpay _razorpay;
 
   @override
   void initState() {
     super.initState();
+    if (!kIsWeb) {
+      _razorpay = Razorpay();
+      _razorpay.on(Razorpay.EVENT_PAYMENT_SUCCESS, _handlePaymentSuccess);
+      _razorpay.on(Razorpay.EVENT_PAYMENT_ERROR, _handlePaymentError);
+      _razorpay.on(Razorpay.EVENT_EXTERNAL_WALLET, _handleExternalWallet);
+    }
     _fetchVehicles();
+  }
+
+  @override
+  void dispose() {
+    super.dispose();
+    if (!kIsWeb) {
+      _razorpay.clear();
+    }
+  }
+
+  void _handlePaymentSuccess(PaymentSuccessResponse response) {
+    // Do something when payment succeeds
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(content: Text('Payment successful: ${response.paymentId}')),
+    );
+    _completeBooking();
+  }
+
+  void _handlePaymentError(PaymentFailureResponse response) {
+    // Do something when payment fails
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(content: Text('Payment failed: ${response.message}')),
+    );
+    setState(() {
+      _isLoading = false;
+    });
+  }
+
+  void _handleExternalWallet(ExternalWalletResponse response) {
+    // Do something when an external wallet was selected
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(content: Text('External wallet: ${response.walletName}')),
+    );
+  }
+
+  Future<void> _completeBooking() async {
+    final prefs = await SharedPreferences.getInstance();
+    final userId = prefs.getString('userId');
+    final token = prefs.getString('token');
+    if (userId == null || token == null) {
+      setState(() {
+        _isLoading = false;
+        _errorMessage = 'User not logged in';
+      });
+      return;
+    }
+
+    final startDateTime = DateTime(_selectedDate.year, _selectedDate.month,
+        _selectedDate.day, _startTime.hour, _startTime.minute);
+    final endDateTime = DateTime(_selectedDate.year, _selectedDate.month,
+        _selectedDate.day, _endTime.hour, _endTime.minute);
+
+    // Calculate duration in hours
+    final durationHours = endDateTime.difference(startDateTime).inHours;
+
+    final bookingData = {
+      'slotId': widget.slot['_id'],
+      'bookingStartTime': startDateTime.toIso8601String(),
+      'durationHours': durationHours,
+      'vehicleId': _selectedVehicleId,
+      'paymentMethod': _selectedPaymentMethod,
+      'amountPaid':
+          10.0, // Placeholder, calculate based on slot price and duration
+    };
+
+    const String backendBaseUrl = 'http://localhost:5000/api';
+    try {
+      final response = await http.post(
+        Uri.parse('$backendBaseUrl/slots/${widget.slot['_id']}/bookings'),
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': 'Bearer $token'
+        },
+        body: json.encode(bookingData),
+      );
+      if (response.statusCode == 201) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Booking successful!')),
+        );
+        Navigator.pop(context); // Go back
+      } else {
+        setState(() {
+          _errorMessage = 'Booking failed: ${response.statusCode}';
+        });
+      }
+    } catch (e) {
+      setState(() {
+        _errorMessage = e.toString();
+      });
+    } finally {
+      setState(() {
+        _isLoading = false;
+      });
+    }
   }
 
   Future<void> _fetchVehicles() async {
@@ -210,6 +314,16 @@ class _SlotBookingPageState extends State<SlotBookingPage> {
       return;
     }
 
+    // Validate booking time (10:00 AM to 11:00 PM)
+    if (_startTime.hour < 10 || _startTime.hour > 23) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+            content:
+                Text('Booking time must be between 10:00 AM and 11:00 PM')),
+      );
+      return;
+    }
+
     setState(() {
       _isLoading = true;
     });
@@ -230,46 +344,70 @@ class _SlotBookingPageState extends State<SlotBookingPage> {
     final endDateTime = DateTime(_selectedDate.year, _selectedDate.month,
         _selectedDate.day, _endTime.hour, _endTime.minute);
 
-    final bookingData = {
-      'slotId': widget.slot['_id'],
-      'userId': userId,
-      'vehicleId': _selectedVehicleId,
-      'stationId': widget.station['id'],
-      'startTime': startDateTime.toIso8601String(),
-      'endTime': endDateTime.toIso8601String(),
-      'amountPaid':
-          10.0, // Placeholder, calculate based on slot price and duration
-      'paymentMethod': 'upi',
-    };
+    // Calculate duration in hours
+    final durationHours = endDateTime.difference(startDateTime).inHours;
 
-    const String backendBaseUrl = 'http://localhost:5000/api';
-    try {
-      final response = await http.post(
-        Uri.parse('$backendBaseUrl/slotbookings'),
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': 'Bearer $token'
-        },
-        body: json.encode(bookingData),
+    final amount = (durationHours * 10.0).toInt(); // Assuming 10 per hour
+
+    if (_selectedPaymentMethod == 'razorpay' && !kIsWeb) {
+      var options = {
+        'key': 'rzp_test_your_key_here', // Replace with your Razorpay key
+        'amount': amount * 100, // Amount in paise
+        'name': 'ParkPro',
+        'description': 'Slot Booking',
+        'prefill': {'contact': 'user@example.com', 'email': 'user@example.com'}
+      };
+      _razorpay.open(options);
+    } else if (_selectedPaymentMethod == 'razorpay' && kIsWeb) {
+      // Handle web payment or show message
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+            content: Text(
+                'Razorpay not supported on web. Please use another payment method.')),
       );
-      if (response.statusCode == 201) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Booking successful!')),
-        );
-        Navigator.pop(context); // Go back
-      } else {
-        setState(() {
-          _errorMessage = 'Booking failed: ${response.statusCode}';
-        });
-      }
-    } catch (e) {
-      setState(() {
-        _errorMessage = e.toString();
-      });
-    } finally {
       setState(() {
         _isLoading = false;
       });
+    } else {
+      // For other payment methods, proceed directly
+      final bookingData = {
+        'slotId': widget.slot['_id'],
+        'bookingStartTime': startDateTime.toIso8601String(),
+        'durationHours': durationHours,
+        'vehicleId': _selectedVehicleId,
+        'paymentMethod': _selectedPaymentMethod,
+        'amountPaid': amount.toDouble(),
+      };
+
+      const String backendBaseUrl = 'http://localhost:5000/api';
+      try {
+        final response = await http.post(
+          Uri.parse('$backendBaseUrl/slots/${widget.slot['_id']}/bookings'),
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': 'Bearer $token'
+          },
+          body: json.encode(bookingData),
+        );
+        if (response.statusCode == 201) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(content: Text('Booking successful!')),
+          );
+          Navigator.pop(context); // Go back
+        } else {
+          setState(() {
+            _errorMessage = 'Booking failed: ${response.statusCode}';
+          });
+        }
+      } catch (e) {
+        setState(() {
+          _errorMessage = e.toString();
+        });
+      } finally {
+        setState(() {
+          _isLoading = false;
+        });
+      }
     }
   }
 
@@ -323,6 +461,26 @@ class _SlotBookingPageState extends State<SlotBookingPage> {
                   child: Text('Select End Time'),
                 ),
               ],
+            ),
+            SizedBox(height: 16),
+            Text('Select Payment Method:'),
+            DropdownButtonFormField<String>(
+              value: _selectedPaymentMethod,
+              items: ['upi', 'card', 'cash', 'razorpay']
+                  .map((method) => DropdownMenuItem<String>(
+                        value: method,
+                        child: Text(method.toUpperCase()),
+                      ))
+                  .toList(),
+              onChanged: (value) {
+                setState(() {
+                  _selectedPaymentMethod = value!;
+                });
+              },
+              decoration: InputDecoration(
+                border: OutlineInputBorder(),
+                hintText: 'Select payment method',
+              ),
             ),
             SizedBox(height: 16),
             Text('Select Vehicle:'),

@@ -1,29 +1,29 @@
 # intents.py - Define intents, entity rules, and response templates
 
 INTENTS = {
-    "navigate_book_slot": {
+    "book_slot": {
         "keywords": ["book", "slot", "parking", "reserve", "park", "rent", "get", "hire", "take"],
-        "action": "navigate",
-        "screen": "book_slot",
+        "action": "book",
+        "screen": None,
         "params": {}
     },
     "display_stations": {
-        "keywords": ["check", "available", "parking", "stations", "station", "location", "in", "see", "show", "list", "view", "find"],
+        "keywords": ["check", "available", "parking", "stations", "station", "location", "in", "see", "show", "list", "view", "find", "parking stations", "parking station"],
         "action": "display",
         "screen": "stations",
         "params": {}
     },
     "view_slots": {
-        "keywords": ["slots", "slot", "available slots", "available slot", "show slots", "show slot", "list slots", "list slot", "view slots", "view slot", "parking slots", "parking slot"],
+        "keywords": ["slots", "slot", "all slots", "all slot", "show all slots", "show all slot", "list all slots", "list all slot", "view all slots", "view all slot", "parking slots", "parking slot", "all", "all the slots", "all the slot"],
         "action": "display",
         "screen": "slots",
-        "params": {}
+        "params": {"filter_available": False}
     },
     "view_slots_filtered": {
         "keywords": ["slots", "slot", "available slots", "available slot", "show slots", "show slot", "list slots", "list slot", "view slots", "view slot", "parking slots", "parking slot", "find", "search", "get", "parking", "bike", "car", "motorcycle", "scooter", "truck", "vehicle"],
         "action": "display",
         "screen": "slots",
-        "params": {}
+        "params": {"filter_available": True}
     },
     "navigate_search_stations": {
         "keywords": ["search", "find", "stations", "location", "nearby", "around", "close"],
@@ -113,17 +113,20 @@ CITY_CORRECTIONS = {
 ENTITY_RULES = {
     'city': r'in (\w+)',
     'time': r'at (\d{1,2}(?::\d{2})? ?(?:am|pm)?)',
-    'date': r'on (\d{1,2}/\d{1,2}(?:/\d{2,4})?)',
+    'date': r'(?:date|on)[:\s]*(\d{1,2}[-/]\d{1,2}[-/]\d{4})',
     'duration': r'for (\d+) hours?',
     'booking_id': r'booking (\d+)',
     'amount': r'amount (\d+)',
     'vehicle': r'vehicle (\w+)',
-    'station': r'station (\w+)',
-    'vehicle_type': r'(bike|car|motorcycle|scooter|truck|vehicle) slots?'
+    'station': r'(\w+) station\b',
+    'vehicle_type': r'(bike|car|motorcycle|scooter|truck|van|vehicle) slots?',
+    'slot_id': r'book (slot \d+|sl\d+|\d+)',
+    'start_time': r'(?:start time|from)[:\s]*(\d{1,2}:\d{2} ?(?:am|pm)?)',
+    'end_time': r'(?:end time|to)[:\s]*(\d{1,2}:\d{2} ?(?:am|pm)?)'
 }
 
 RESPONSE_TEMPLATES = {
-    'navigate_book_slot': "Navigating to book a slot{city_part}.",
+    'book_slot': "Booking slot...",
     'navigate_search_stations': "Searching for stations{city_part}.",
     'display_stations': "Here are the available parking stations{city_part}:",
     'view_slots': "Here are the available slots:",

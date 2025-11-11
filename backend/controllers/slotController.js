@@ -1,12 +1,54 @@
 const Slot = require('../models/Slot');
 const cloudinary = require('cloudinary').v2;
 const { sendBookingConfirmationEmail } = require('../services/emailService');
+const Razorpay = require('razorpay');
+
+// Initialize Razorpay
+let razorpay;
+try {
+  if (process.env.RAZORPAY_KEY_ID && process.env.RAZORPAY_KEY_SECRET) {
+    razorpay = new Razorpay({
+      key_id: process.env.RAZORPAY_KEY_ID,
+      key_secret: process.env.RAZORPAY_KEY_SECRET,
+    });
+  } else {
+    console.warn('Razorpay credentials not found. Payment features will be disabled.');
+    razorpay = null;
+  }
+} catch (error) {
+  console.error('Failed to initialize Razorpay:', error.message);
+  razorpay = null;
+}
 
 cloudinary.config({
   cloud_name: 'dwgwtx0jz',
   api_key: '523154331876144',
   api_secret: 'j-XAGu4EUdSjqw9tGwa85ZbQ0v0'
 });
+
+// Get all slots
+exports.getAllSlots = async (req, res) => {
+    try {
+        const slots = await Slot.find({}).sort({ createdAt: -1 });
+        res.status(200).json(slots);
+    } catch (error) {
+        res.status(500).json({ message: error.message });
+    }
+};
+
+// Get slot by slotId
+exports.getSlotById = async (req, res) => {
+    try {
+        const { slotId } = req.params;
+        const slot = await Slot.findOne({ slotId: slotId });
+        if (!slot) {
+            return res.status(404).json({ message: 'Slot not found' });
+        }
+        res.status(200).json(slot);
+    } catch (error) {
+        res.status(500).json({ message: error.message });
+    }
+};
 
 // Get all slots for a station
 exports.getSlotsByStation = async (req, res) => {
@@ -147,7 +189,7 @@ exports.createBooking = async (req, res) => {
         }
 
         // Validate payment method
-        if (!['upi', 'coupon'].includes(paymentMethod)) {
+        if (!['upi', 'coupon', 'razorpay'].includes(paymentMethod)) {
             return res.status(400).json({ message: 'Invalid payment method' });
         }
 
@@ -159,6 +201,11 @@ exports.createBooking = async (req, res) => {
         // For UPI payments, amount must be greater than 0
         if (paymentMethod === 'upi' && amountPaid <= 0) {
             return res.status(400).json({ message: 'UPI payments must have amountPaid greater than 0' });
+        }
+
+        // For Razorpay payments, amount must be greater than 0
+        if (paymentMethod === 'razorpay' && amountPaid <= 0) {
+            return res.status(400).json({ message: 'Razorpay payments must have amountPaid greater than 0' });
         }
 
         const User = require('../models/User');
@@ -248,55 +295,108 @@ exports.createBooking = async (req, res) => {
             paymentMethod
         });
 
-        // Create new booking
-        const newBooking = new SlotBooking({
-            slotId: slot._id,
-            userId: user._id,
-            vehicleId: vehicle._id,
-            stationId: station._id,
-            bookingStartTime: startTime,
-            bookingEndTime: endTime,
-            amountPaid,
-            paymentMethod,
-            paymentStatus: paymentMethod === 'coupon' ? 'success' : 'success',
-            status: 'active',
-            cancelReason: null
-        });
+        if (paymentMethod === 'razorpay') {
+            // Create Razorpay order for booking
+            try {
+                const options = {
+                    amount: amountPaid * 100, // Amount in paisa
+                    currency: 'INR',
+                    receipt: `rcpt_${Date.now()}`,
+                    payment_capture: 1, // Auto capture
+                    notes: {
+                        userId: user._id.toString(),
+                        vehicleId: vehicle._id.toString(),
+                        slotId: slot._id.toString(),
+                        stationId: station._id.toString(),
+                        bookingStartTime: startTime.toISOString(),
+                        bookingEndTime: endTime.toISOString(),
+                        durationHours: durationHours.toString()
+                    }
+                };
 
-        await newBooking.save();
+                const order = await razorpay.orders.create(options);
 
-        // Populate booking details for email
-        const populatedBooking = await SlotBooking.findById(newBooking._id)
-            .populate('stationId', 'name address')
-            .populate('vehicleId', 'number')
-            .populate('slotId', 'slotId type')
-            .populate('userId', 'name email');
+                // Create pending booking record
+                const newBooking = new SlotBooking({
+                    slotId: slot._id,
+                    userId: user._id,
+                    vehicleId: vehicle._id,
+                    stationId: station._id,
+                    bookingStartTime: startTime,
+                    bookingEndTime: endTime,
+                    amountPaid,
+                    paymentMethod: 'razorpay',
+                    paymentStatus: 'pending',
+                    status: 'pending',
+                    cancelReason: null,
+                    razorpayOrderId: order.id
+                });
 
-        // Send booking confirmation email
-        try {
-            await sendBookingConfirmationEmail(
-                populatedBooking.userId.email,
-                populatedBooking.userId.name,
-                {
-                    stationName: populatedBooking.stationId.name,
-                    stationAddress: populatedBooking.stationId.address,
-                    vehicleNumber: populatedBooking.vehicleId.number,
-                    startTime: populatedBooking.bookingStartTime,
-                    endTime: populatedBooking.bookingEndTime,
-                    amountPaid: populatedBooking.amountPaid,
-                    paymentMethod: populatedBooking.paymentMethod,
-                    slotId: populatedBooking.slotId.slotId,
-                    slotType: populatedBooking.slotId.type
-                }
-            );
-            console.log('Booking confirmation email sent successfully');
-        } catch (emailError) {
-            console.error('Failed to send booking confirmation email:', emailError);
-            // Don't fail the booking if email fails
+                await newBooking.save();
+
+                res.json({
+                    orderId: order.id,
+                    amount: order.amount,
+                    currency: order.currency,
+                    key: process.env.RAZORPAY_KEY_ID,
+                    bookingId: newBooking._id,
+                    paymentMethod: 'razorpay'
+                });
+            } catch (razorpayError) {
+                console.error('Razorpay order creation failed:', razorpayError);
+                return res.status(500).json({ message: 'Failed to create payment order', error: razorpayError.message });
+            }
+        } else {
+            // For coupon and UPI payments, create booking immediately
+            const newBooking = new SlotBooking({
+                slotId: slot._id,
+                userId: user._id,
+                vehicleId: vehicle._id,
+                stationId: station._id,
+                bookingStartTime: startTime,
+                bookingEndTime: endTime,
+                amountPaid,
+                paymentMethod,
+                paymentStatus: paymentMethod === 'coupon' ? 'success' : 'success',
+                status: 'active',
+                cancelReason: null
+            });
+
+            await newBooking.save();
+
+            // Populate booking details for email
+            const populatedBooking = await SlotBooking.findById(newBooking._id)
+                .populate('stationId', 'name address')
+                .populate('vehicleId', 'number')
+                .populate('slotId', 'slotId type')
+                .populate('userId', 'name email');
+
+            // Send booking confirmation email
+            try {
+                await sendBookingConfirmationEmail(
+                    populatedBooking.userId.email,
+                    populatedBooking.userId.name,
+                    {
+                        stationName: populatedBooking.stationId.name,
+                        stationAddress: populatedBooking.stationId.address,
+                        vehicleNumber: populatedBooking.vehicleId.number,
+                        startTime: populatedBooking.bookingStartTime,
+                        endTime: populatedBooking.bookingEndTime,
+                        amountPaid: populatedBooking.amountPaid,
+                        paymentMethod: populatedBooking.paymentMethod,
+                        slotId: populatedBooking.slotId.slotId,
+                        slotType: populatedBooking.slotId.type
+                    }
+                );
+                console.log('Booking confirmation email sent successfully');
+            } catch (emailError) {
+                console.error('Failed to send booking confirmation email:', emailError);
+                // Don't fail the booking if email fails
+            }
+
+            // Slot remains available for other bookings, only specific hours are booked
+            res.status(201).json({ booking: newBooking, message: 'Booking created successfully' });
         }
-
-        // Slot remains available for other bookings, only specific hours are booked
-        res.status(201).json({ booking: newBooking, message: 'Booking created successfully' });
     } catch (error) {
         console.error('Error creating booking:', error);
         res.status(500).json({ message: error.message });
@@ -757,6 +857,85 @@ exports.getSlotBookingsByUserId = async (req, res) => {
         const bookings = await SlotBooking.find({ userId: userId }).populate('slotId', 'slotId').populate('vehicleId', 'number').sort({ bookingStartTime: -1 });
         res.status(200).json(bookings);
     } catch (error) {
+        res.status(500).json({ message: error.message });
+    }
+};
+
+// Verify Razorpay payment
+exports.verifyRazorpayPayment = async (req, res) => {
+    try {
+        const { razorpay_order_id, razorpay_payment_id, razorpay_signature } = req.body;
+
+        if (!razorpay_order_id || !razorpay_payment_id || !razorpay_signature) {
+            return res.status(400).json({ message: 'razorpay_order_id, razorpay_payment_id, and razorpay_signature are required' });
+        }
+
+        const SlotBooking = require('../models/SlotBooking');
+        const crypto = require('crypto');
+
+        // Find booking by razorpayOrderId
+        const booking = await SlotBooking.findOne({ razorpayOrderId: razorpay_order_id });
+        if (!booking) {
+            return res.status(404).json({ message: 'Booking not found for this order' });
+        }
+
+        if (booking.status !== 'pending') {
+            return res.status(400).json({ message: 'Booking is not in pending state' });
+        }
+
+        // Verify payment signature
+        const sign = razorpay_order_id + '|' + razorpay_payment_id;
+        const expectedSign = crypto.createHmac('sha256', process.env.RAZORPAY_KEY_SECRET)
+            .update(sign.toString())
+            .digest('hex');
+
+        if (razorpay_signature !== expectedSign) {
+            // Payment verification failed
+            booking.status = 'cancelled';
+            booking.paymentStatus = 'failed';
+            await booking.save();
+            return res.status(400).json({ message: 'Payment verification failed' });
+        }
+
+        // Payment verified successfully
+        booking.status = 'active';
+        booking.paymentStatus = 'success';
+        booking.razorpayPaymentId = razorpay_payment_id;
+        await booking.save();
+
+        // Populate booking details for email
+        const populatedBooking = await SlotBooking.findById(booking._id)
+            .populate('stationId', 'name address')
+            .populate('vehicleId', 'number')
+            .populate('slotId', 'slotId type')
+            .populate('userId', 'name email');
+
+        // Send booking confirmation email
+        try {
+            await sendBookingConfirmationEmail(
+                populatedBooking.userId.email,
+                populatedBooking.userId.name,
+                {
+                    stationName: populatedBooking.stationId.name,
+                    stationAddress: populatedBooking.stationId.address,
+                    vehicleNumber: populatedBooking.vehicleId.number,
+                    startTime: populatedBooking.bookingStartTime,
+                    endTime: populatedBooking.bookingEndTime,
+                    amountPaid: populatedBooking.amountPaid,
+                    paymentMethod: populatedBooking.paymentMethod,
+                    slotId: populatedBooking.slotId.slotId,
+                    slotType: populatedBooking.slotId.type
+                }
+            );
+            console.log('Booking confirmation email sent successfully');
+        } catch (emailError) {
+            console.error('Failed to send booking confirmation email:', emailError);
+            // Don't fail the booking if email fails
+        }
+
+        res.status(200).json({ message: 'Payment verified and booking confirmed', booking });
+    } catch (error) {
+        console.error('Error verifying Razorpay payment:', error);
         res.status(500).json({ message: error.message });
     }
 };

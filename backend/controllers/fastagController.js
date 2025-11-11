@@ -8,10 +8,21 @@ const Razorpay = require('razorpay');
 const { sendPaymentSuccessEmail } = require('../services/emailService');
 
 // Initialize Razorpay
-const razorpay = new Razorpay({
-  key_id: process.env.RAZORPAY_KEY_ID,
-  key_secret: process.env.RAZORPAY_KEY_SECRET,
-});
+let razorpay;
+try {
+  if (process.env.RAZORPAY_KEY_ID && process.env.RAZORPAY_KEY_SECRET) {
+    razorpay = new Razorpay({
+      key_id: process.env.RAZORPAY_KEY_ID,
+      key_secret: process.env.RAZORPAY_KEY_SECRET,
+    });
+  } else {
+    console.warn('Razorpay credentials not found. Payment features will be disabled.');
+    razorpay = null;
+  }
+} catch (error) {
+  console.error('Failed to initialize Razorpay:', error.message);
+  razorpay = null;
+}
 
 // Get FASTag balance for user
 exports.getBalance = async (req, res) => {

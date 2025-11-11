@@ -19,13 +19,18 @@ def test_intent_recognition():
         },
         {
             "input": "show slots",
-            "expected_intent": "view_slots",    
+            "expected_intent": "view_slots_filtered",
             "expected_entities": {}
         },
         {
             "input": "show me available slots",
-            "expected_intent": "view_slots",
+            "expected_intent": "view_slots_filtered",
             "expected_entities": {}
+        },
+        {
+            "input": "show all the slots in this",
+            "expected_intent": "view_slots",
+            "expected_entities": {"station": "this"}
         }
     ]
 

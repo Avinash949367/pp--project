@@ -24,13 +24,13 @@ class _SlotBookingsPageState extends State<SlotBookingsPage> {
   }
 
   Future<void> _fetchSlotBookings() async {
-    const String backendBaseUrl = 'http://localhost:8000';
+    const String backendBaseUrl = 'http://localhost:5000/api';
 
     try {
       // Assuming there's an endpoint to get bookings by slotId
       // For now, fetch all slotbookings and filter
-      final response =
-          await http.get(Uri.parse('$backendBaseUrl/slotbookings'));
+      final response = await http.get(
+          Uri.parse('$backendBaseUrl/slots/${widget.slot['_id']}/bookings'));
       if (response.statusCode != 200) {
         throw Exception('Failed to fetch bookings');
       }

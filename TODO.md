@@ -1,7 +1,21 @@
-# TODO: Fix Razorpay FASTag Recharge Verification
+# Razorpay Integration for Slot Booking
 
-## Completed Tasks
-- [x] Add `verifyRazorpayPayment` function in `backend/controllers/fastagController.js` to verify payment with Razorpay API and update transaction/balance
-- [x] Add `/verify-razorpay-payment` route in `backend/routes/fastagRoutes.js`
-- [x] Update `frontend/js/razorpayFastag.js` success handler to call verification endpoint instead of just showing success
-- [x] Test the complete payment flow to ensure immediate balance updates
+## Backend Changes
+- [x] Update slotController.js to support Razorpay payment method
+- [x] Add Razorpay order creation for bookings
+- [x] Add payment verification endpoint for Razorpay
+
+## Flutter App Changes
+- [x] Add Razorpay Flutter SDK to pubspec.yaml
+- [x] Modify slot_booking_page.dart to integrate Razorpay payment flow
+- [x] Update booking UI to handle Razorpay payments
+
+## AI Service Changes
+- [x] Update ai_model.py to fetch user vehicles for booking
+- [x] Integrate vehicle selection in booking flow
+- [x] Add vehicle ID to booking data
+
+## Testing
+- [ ] Test complete booking flow with Razorpay
+- [ ] Verify payment confirmation and booking creation
+- [ ] Test AI chatbot booking with vehicle selection

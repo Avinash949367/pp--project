@@ -152,7 +152,8 @@ class _ProfilePageState extends State<ProfilePage> {
                           : (profileImageUrl != null &&
                                       profileImageUrl!.isNotEmpty
                                   ? NetworkImage(profileImageUrl!)
-                                  : const AssetImage("assets/profile.png"))
+                                  : const AssetImage(
+                                      "assets/images/profile.png"))
                               as ImageProvider,
                     ),
                   ),
@@ -318,7 +319,7 @@ class _ProfilePageState extends State<ProfilePage> {
                   backgroundImage:
                       (profileImageUrl != null && profileImageUrl!.isNotEmpty
                               ? NetworkImage(profileImageUrl!)
-                              : const AssetImage("assets/profile.png"))
+                              : const AssetImage("assets/images/profile.png"))
                           as ImageProvider<Object>?,
                 ),
                 const SizedBox(height: 12),

@@ -6,8 +6,8 @@ import 'package:http/http.dart' as http;
 import 'dart:convert';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:speech_to_text/speech_to_text.dart' as stt;
-
-// Import your pages hello
+import 'package:flutter/foundation.dart' show kIsWeb;
+import 'dart:io';
 import 'screens/favorites_page.dart';
 import 'screens/booking_page.dart';
 import 'screens/bookings_page.dart';
@@ -108,7 +108,6 @@ class _QuickBookPageState extends State<QuickBookPage> {
     FavoritesPage(),
     ChatbotPage(),
     FastagPage(),
-    ChatbotPage(),
   ];
 
   void _onItemTapped(int index) async {
@@ -345,30 +344,6 @@ class _QuickBookPageState extends State<QuickBookPage> {
                   ),
                 ],
               ),
-              Column(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  IconButton(
-                    padding: EdgeInsets.zero,
-                    icon: Icon(
-                      Icons.chat,
-                      color: _currentIndex == 4
-                          ? const Color(0xFF2979FF)
-                          : Colors.grey,
-                    ),
-                    onPressed: () => _onItemTapped(5),
-                  ),
-                  Text(
-                    'Chatbot',
-                    style: TextStyle(
-                      color: _currentIndex == 4
-                          ? const Color(0xFF2979FF)
-                          : Colors.grey,
-                      fontSize: 12,
-                    ),
-                  ),
-                ],
-              ),
             ],
           ),
         ),
@@ -451,6 +426,16 @@ class _QuickBookHomeState extends State<QuickBookHome>
   }
 
   Future<void> _getCurrentLocation() async {
+    if (kIsWeb) {
+      // On web, Geolocator is not supported, set default location
+      setState(() {
+        _center = LatLng(37.7749, -122.4194); // Default to San Francisco
+        _isLoadingLocation = false;
+      });
+      await _loadRecentBookings();
+      return;
+    }
+
     try {
       bool serviceEnabled = await Geolocator.isLocationServiceEnabled();
       if (!serviceEnabled) {
@@ -476,10 +461,12 @@ class _QuickBookHomeState extends State<QuickBookHome>
         desiredAccuracy: LocationAccuracy.high,
       );
 
-      setState(() {
-        _center = LatLng(position.latitude, position.longitude);
-        _isLoadingLocation = false;
-      });
+      if (mounted) {
+        setState(() {
+          _center = LatLng(position.latitude, position.longitude);
+          _isLoadingLocation = false;
+        });
+      }
 
       await _loadRecentBookings();
     } catch (e) {
@@ -548,10 +535,10 @@ class _QuickBookHomeState extends State<QuickBookHome>
       );
 
       if (response.statusCode == 200) {
-        final data = json.decode(response.body);
-        final bookings = data['bookings'] ?? [];
+        final data = json.decode(response.body) as Map<String, dynamic>;
+        final bookings = data['bookings'] as List<dynamic>? ?? [];
         return bookings
-            .map((booking) => booking as Map<String, dynamic>)
+            .map((booking) => Map<String, dynamic>.from(booking))
             .toList();
       }
     } catch (e) {
@@ -938,7 +925,7 @@ class _QuickBookHomeState extends State<QuickBookHome>
                     width: 40,
                     height: 40,
                     child: Image.asset(
-                      'assets/images/logo.png',
+                      'assets/images/pplogo.png',
                       fit: BoxFit.contain,
                     ),
                   ),

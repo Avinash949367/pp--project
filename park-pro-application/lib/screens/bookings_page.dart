@@ -31,7 +31,7 @@ class _BookingsPageState extends State<BookingsPage> {
     Set<String> stationIds = {};
     for (var booking in widget.bookings) {
       if (booking['stationId'] != null) {
-        stationIds.add(booking['stationId']);
+        stationIds.add(booking['stationId'].toString());
       }
     }
     for (String stationId in stationIds) {

@@ -35,7 +35,7 @@ const slotBookingSchema = new mongoose.Schema({
   },
   paymentMethod: {
     type: String,
-    enum: ['upi', 'coupon'],
+    enum: ['upi', 'coupon', 'razorpay'],
     required: true
   },
   paymentStatus: {
@@ -56,6 +56,16 @@ const slotBookingSchema = new mongoose.Schema({
   cancelReason: {
     type: String,
     enum: ['user_cancelled', 'timeout', 'system_error', null],
+    default: null
+  },
+  razorpayOrderId: {
+    type: String,
+    required: false,
+    default: null
+  },
+  razorpayPaymentId: {
+    type: String,
+    required: false,
     default: null
   }
 }, {

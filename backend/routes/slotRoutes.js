@@ -3,6 +3,12 @@ const router = express.Router();
 const passport = require('passport');
 const slotController = require('../controllers/slotController');
 
+// Get all slots
+router.get('/', slotController.getAllSlots);
+
+// Get slot by slotId
+router.get('/slot/:slotId', slotController.getSlotById);
+
 // Get all slots for a station
 router.get('/station/:stationId', slotController.getSlotsByStation);
 
@@ -35,6 +41,9 @@ router.post('/bookings/reserve', passport.authenticate('jwt', { session: false }
 
 // Verify payment
 router.post('/payments/verify', slotController.verifyPayment);
+
+// Verify Razorpay payment
+router.post('/payments/razorpay/verify', passport.authenticate('jwt', { session: false }), slotController.verifyRazorpayPayment);
 
 // Test route
 router.get('/test', (req, res) => res.send('slot routes working'));
