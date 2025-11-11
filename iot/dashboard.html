@@ -1,0 +1,153 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>ParkPro+ IoT Dashboard</title>
+
+<style>
+    body {
+        margin: 0;
+        font-family: Arial, sans-serif;
+        background: #E5ECEE;
+    }
+
+    .header {
+        background: #1E373F;
+        color: white;
+        padding: 20px;
+        text-align: center;
+        font-size: 28px;
+        font-weight: bold;
+        letter-spacing: 1px;
+    }
+
+    .sub-header {
+        text-align: center;
+        font-size: 16px;
+        color: #677377;
+        margin-top: 5px;
+    }
+
+    .container {
+        display: flex;
+        justify-content: center;
+        gap: 25px;
+        margin-top: 40px;
+        flex-wrap: wrap;
+    }
+
+    .card {
+        width: 260px;
+        background: white;
+        border-radius: 14px;
+        padding: 20px;
+        box-shadow: 0px 4px 15px rgba(0,0,0,0.12);
+        text-align: center;
+        transition: 0.2s;
+    }
+
+    .card:hover {
+        transform: scale(1.05);
+    }
+
+    .slot-title {
+        font-size: 22px;
+        font-weight: bold;
+        color: #1E373F;
+        margin-bottom: 12px;
+    }
+
+    .status {
+        font-size: 26px;
+        font-weight: bold;
+        padding: 10px;
+        border-radius: 10px;
+    }
+
+    .occupied {
+        background: #FF6B35;
+        color: white;
+    }
+
+    .empty {
+        background: #46949D;
+        color: white;
+    }
+
+    .plate {
+        margin-top: 12px;
+        font-size: 18px;
+        font-weight: bold;
+        color: #1E373F;
+        background: #D7E4E6;
+        padding: 8px;
+        border-radius: 8px;
+        display: none; /* hidden by default */
+    }
+</style>
+</head>
+
+<body>
+
+<div class="header">ParkPro+ IoT Dashboard</div>
+<div class="sub-header">Real-time Parking Slot Monitoring</div>
+<div class="sub-header">ESP32 Code: <a href="smart_parking.ino" target="_blank">smart_parking.ino</a></div>
+<center><div id="p1" class="plate">Number Plate: Not Recognised</div></center>
+<center><div id="p2" class="plate">Number Plate: Not Recognised</div></center>
+<center><div id="p3" class="plate">Number Plate: Not Recognised</div></center>
+<div class="container">
+
+    <div class="card">
+        <div class="slot-title">Slot 1</div>
+        <div id="s1" class="status">Loading...</div>
+        
+    </div>
+
+    <div class="card">
+        <div class="slot-title">Slot 2</div>
+        <div id="s2" class="status">Loading...</div>
+        
+    </div>
+
+    <div class="card">
+        <div class="slot-title">Slot 3</div>
+        <div id="s3" class="status">Loading...</div>
+        
+    </div>
+
+</div>
+
+<script>
+const token = "eK1DRkaX37-0o70h5TdQngSIMdRRj04x";
+
+async function updateSlots() {
+    const s1 = await fetch(`https://blynk.cloud/external/api/get?token=${token}&V1`).then(r => r.text());
+    const s2 = await fetch(`https://blynk.cloud/external/api/get?token=${token}&V2`).then(r => r.text());
+    const s3 = await fetch(`https://blynk.cloud/external/api/get?token=${token}&V3`).then(r => r.text());
+
+    updateUI("s1", "p1", s1);
+    updateUI("s2", "p2", s2);
+    updateUI("s3", "p3", s3);
+}
+
+function updateUI(statusId, plateId, status) {
+    const statusEl = document.getElementById(statusId);
+    const plateEl  = document.getElementById(plateId);
+
+    statusEl.innerText = status;
+
+    if (status.trim() === "Occupied") {
+        statusEl.className = "status occupied";
+        plateEl.style.display = "block";  // show number plate section
+    } else {
+        statusEl.className = "status empty";
+        plateEl.style.display = "none";   // hide number plate section
+    }
+}
+
+setInterval(updateSlots, 1000);
+updateSlots();
+</script>
+
+</body>
+</html>

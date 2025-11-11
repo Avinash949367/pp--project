@@ -2,6 +2,7 @@ const Slot = require('../models/Slot');
 const cloudinary = require('cloudinary').v2;
 const { sendBookingConfirmationEmail } = require('../services/emailService');
 const Razorpay = require('razorpay');
+const { createNotification } = require('./notificationController');
 
 // Initialize Razorpay
 let razorpay;
@@ -392,6 +393,26 @@ exports.createBooking = async (req, res) => {
             } catch (emailError) {
                 console.error('Failed to send booking confirmation email:', emailError);
                 // Don't fail the booking if email fails
+            }
+
+            // Create booking confirmation notification
+            try {
+                await createNotification(
+                    user._id,
+                    'booking',
+                    'Booking Confirmed',
+                    `Your booking at ${station.name} for ${vehicle.number} has been confirmed. Start time: ${startTime.toLocaleString()}`,
+                    {
+                        action: 'view_booking',
+                        relatedId: newBooking._id,
+                        relatedModel: 'SlotBooking',
+                        priority: 'medium'
+                    }
+                );
+                console.log('Booking confirmation notification created');
+            } catch (notificationError) {
+                console.error('Failed to create booking notification:', notificationError);
+                // Don't fail the booking if notification fails
             }
 
             // Slot remains available for other bookings, only specific hours are booked
@@ -931,6 +952,26 @@ exports.verifyRazorpayPayment = async (req, res) => {
         } catch (emailError) {
             console.error('Failed to send booking confirmation email:', emailError);
             // Don't fail the booking if email fails
+        }
+
+        // Create booking confirmation notification
+        try {
+            await createNotification(
+                populatedBooking.userId._id,
+                'booking',
+                'Booking Confirmed',
+                `Your booking at ${populatedBooking.stationId.name} for ${populatedBooking.vehicleId.number} has been confirmed. Start time: ${populatedBooking.bookingStartTime.toLocaleString()}`,
+                {
+                    action: 'view_booking',
+                    relatedId: booking._id,
+                    relatedModel: 'SlotBooking',
+                    priority: 'medium'
+                }
+            );
+            console.log('Booking confirmation notification created');
+        } catch (notificationError) {
+            console.error('Failed to create booking notification:', notificationError);
+            // Don't fail the booking if notification fails
         }
 
         res.status(200).json({ message: 'Payment verified and booking confirmed', booking });

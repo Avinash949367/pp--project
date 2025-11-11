@@ -508,11 +508,15 @@ class _ChatbotPageState extends State<ChatbotPage> {
             'text': 'Error: Unable to connect to AI service.'
           });
         });
+        // Speak the error message
+        await _flutterTts.speak('Error: Unable to connect to AI service.');
       }
     } catch (e) {
       setState(() {
         _messages.add({'sender': 'bot', 'text': 'Error: ${e.toString()}'});
       });
+      // Speak the error message
+      await _flutterTts.speak('Error: ${e.toString()}');
     } finally {
       setState(() {
         _isLoading = false;

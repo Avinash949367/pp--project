@@ -13,6 +13,7 @@ const registerRoutes = require('./routes/registerRoutes');
 const stationRoutes = require('./routes/stationRoutes');
 const slotRoutes = require('./routes/slotRoutes');
 const reviewRoutes = require('./routes/reviewRoutes');
+const notificationRoutes = require('./routes/notificationRoutes');
 require('./config/passport'); // Passport config
 
 const bcrypt = require('bcryptjs');
@@ -50,7 +51,7 @@ app.use(cors({
   origin: true, // Allow all origins
   credentials: true,
   methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
-  allowedHeaders: ['Content-Type', 'Authorization']
+  allowedHeaders: ['Content-Type', 'Authorization', 'Referrer']
 }));
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
@@ -90,6 +91,7 @@ app.use('/api/contacts', contactRoutes);
 app.use('/api/slots', slotRoutes);
 app.use('/api/reviews', reviewRoutes);  // Added review routes
 app.use('/api/fastag', fastagRoutes);
+app.use('/api/notifications', notificationRoutes);
 
 // Proxy route for AI chat
 app.post('/api/chat', (req, res) => {
