@@ -476,7 +476,7 @@
 
   <script>
     // Sidebar dropdown toggle function
-    function toggleDropdown(id) {
+    window.toggleDropdown = function(id) {
       console.log('toggleDropdown called for:', id);
       const dropdown = document.getElementById(id);
       const icon = document.getElementById(id.replace('Dropdown', 'Icon'));
@@ -488,7 +488,7 @@
         dropdown.classList.add('show');
         icon.style.transform = 'rotate(180deg)';
       }
-    }
+    };
 
     // Global variables
     let map;

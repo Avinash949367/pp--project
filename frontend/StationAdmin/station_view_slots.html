@@ -590,9 +590,12 @@
         });
     </script>
   <script>
-    function toggleDropdown(dropdownId) {
-      const dropdown = document.getElementById(dropdownId);
-      const icon = document.getElementById(dropdownId.replace('Dropdown', 'Icon'));
+    // Sidebar dropdown toggle function
+    window.toggleDropdown = function(id) {
+      console.log('toggleDropdown called for:', id);
+      const dropdown = document.getElementById(id);
+      const icon = document.getElementById(id.replace('Dropdown', 'Icon'));
+
       if (dropdown.classList.contains('show')) {
         dropdown.classList.remove('show');
         icon.style.transform = 'rotate(0deg)';
@@ -600,7 +603,7 @@
         dropdown.classList.add('show');
         icon.style.transform = 'rotate(180deg)';
       }
-    }
+    };
 
     // Check if user is logged in on page load
     document.addEventListener('DOMContentLoaded', () => {
