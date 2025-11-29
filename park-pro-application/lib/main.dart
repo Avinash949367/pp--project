@@ -180,27 +180,14 @@ class _QuickBookPageState extends State<QuickBookPage> {
   }
 
   Future<List<Map<String, dynamic>>?> _fetchBookings(String userId) async {
-    final url = Uri.parse('http://127.0.0.1:5000/api/user/bookings');
+    final url =
+        Uri.parse('http://127.0.0.1:5000/api/slots/slotbookings/$userId');
     try {
-      final prefs = await SharedPreferences.getInstance();
-      final token = prefs.getString('token');
-      if (token == null) {
-        print('No token found in SharedPreferences');
-        return null;
-      }
-
-      final response = await http.get(
-        url,
-        headers: {
-          'Authorization': 'Bearer $token',
-        },
-      );
-
+      final response = await http.get(url);
       if (response.statusCode == 200) {
         final data = json.decode(response.body);
-        final bookings = data['bookings'];
-        if (bookings is List) {
-          return bookings
+        if (data is List) {
+          return data
               .map((booking) => Map<String, dynamic>.from(booking))
               .toList();
         } else {
@@ -518,26 +505,13 @@ class _QuickBookHomeState extends State<QuickBookHome>
 
   Future<List<Map<String, dynamic>>?> _fetchRecentBookings(
       String userId) async {
-    final url = Uri.parse('http://127.0.0.1:5000/api/user/bookings');
+    final url =
+        Uri.parse('http://127.0.0.1:5000/api/slots/slotbookings/$userId');
     try {
-      final prefs = await SharedPreferences.getInstance();
-      final token = prefs.getString('token');
-      if (token == null) {
-        print('No token found in SharedPreferences');
-        return null;
-      }
-
-      final response = await http.get(
-        url,
-        headers: {
-          'Authorization': 'Bearer $token',
-        },
-      );
-
+      final response = await http.get(url);
       if (response.statusCode == 200) {
-        final data = json.decode(response.body) as Map<String, dynamic>;
-        final bookings = data['bookings'] as List<dynamic>? ?? [];
-        return bookings
+        final data = json.decode(response.body) as List;
+        return data
             .map((booking) => Map<String, dynamic>.from(booking))
             .toList();
       }

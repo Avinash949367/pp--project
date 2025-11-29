@@ -875,7 +875,7 @@ exports.getSlotBookingsByUserId = async (req, res) => {
     try {
         const { userId } = req.params;
         const SlotBooking = require('../models/SlotBooking');
-        const bookings = await SlotBooking.find({ userId: userId }).populate('slotId', 'slotId').populate('vehicleId', 'number').sort({ bookingStartTime: -1 });
+        const bookings = await SlotBooking.find({ userId: userId }).populate('slotId', 'slotId').populate('vehicleId', 'number').populate('stationId', 'name').sort({ bookingStartTime: -1 });
         res.status(200).json(bookings);
     } catch (error) {
         res.status(500).json({ message: error.message });

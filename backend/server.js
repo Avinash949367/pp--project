@@ -78,6 +78,7 @@ const userProfileRoutes = require('./routes/userProfileRoutes');
 const userRoutes = require('./routes/userRoutes');
 const contactRoutes = require('./routes/contactRoutes');
 const fastagRoutes = require('./routes/fastagRoutes');
+const favoriteRoutes = require('./routes/favoriteRoutes');
 
 // Import cleanup function
 const cleanupExpiredReservations = require('./scripts/cleanupExpiredReservations');
@@ -91,6 +92,7 @@ app.use('/api/contacts', contactRoutes);
 app.use('/api/slots', slotRoutes);
 app.use('/api/reviews', reviewRoutes);  // Added review routes
 app.use('/api/fastag', fastagRoutes);
+app.use('/api/favorites', favoriteRoutes);
 app.use('/api/notifications', notificationRoutes);
 
 // Proxy route for AI chat

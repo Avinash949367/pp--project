@@ -1,6 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
 import 'dart:convert';
+import 'package:shared_preferences/shared_preferences.dart';
+import 'package:flutter/foundation.dart' show kIsWeb;
+import 'dart:io';
 import 'slot_selection_page.dart';
 
 class BookSlotPage extends StatefulWidget {
@@ -21,10 +24,13 @@ class _BookSlotPageState extends State<BookSlotPage> {
   bool _isLoading = false;
   String _errorMessage = '';
   final TextEditingController _searchController = TextEditingController();
+  Map<String, bool> _favoriteStatus = {};
+  String? _userToken;
 
   @override
   void initState() {
     super.initState();
+    _loadUserToken();
     _fetchStations();
     _searchController.addListener(_filterStations);
   }
@@ -33,6 +39,13 @@ class _BookSlotPageState extends State<BookSlotPage> {
   void dispose() {
     _searchController.dispose();
     super.dispose();
+  }
+
+  Future<void> _loadUserToken() async {
+    final prefs = await SharedPreferences.getInstance();
+    setState(() {
+      _userToken = prefs.getString('token');
+    });
   }
 
   Future<void> _fetchStations() async {
@@ -69,6 +82,11 @@ class _BookSlotPageState extends State<BookSlotPage> {
                 _stationsByCity[city] = [];
               }
               _stationsByCity[city]!.add(station);
+            }
+            // Check favorite status for each station
+            final stationId = station['_id'] ?? station['id'];
+            if (stationId != null) {
+              _checkFavoriteStatus(stationId);
             }
           }
           _cities = uniqueCities.toList();
@@ -128,6 +146,104 @@ class _BookSlotPageState extends State<BookSlotPage> {
       }
     }
     return '-';
+  }
+
+  Future<void> _checkFavoriteStatus(String stationId) async {
+    if (_userToken == null) return;
+
+    try {
+      String backendUrl;
+      if (kIsWeb) {
+        backendUrl = 'http://localhost:5000/api/favorites/check/$stationId';
+      } else if (Platform.isAndroid) {
+        backendUrl = 'http://10.0.2.2:5000/api/favorites/check/$stationId';
+      } else if (Platform.isIOS) {
+        backendUrl = 'http://localhost:5000/api/favorites/check/$stationId';
+      } else {
+        backendUrl = 'http://localhost:5000/api/favorites/check/$stationId';
+      }
+
+      final response = await http.get(
+        Uri.parse(backendUrl),
+        headers: {'Authorization': 'Bearer $_userToken'},
+      );
+
+      if (response.statusCode == 200) {
+        final data = json.decode(response.body);
+        setState(() {
+          _favoriteStatus[stationId] = data['isFavorite'] ?? false;
+        });
+      }
+    } catch (e) {
+      // Handle error silently
+    }
+  }
+
+  Future<void> _toggleFavorite(String stationId) async {
+    if (_userToken == null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Please login to add favorites')),
+      );
+      return;
+    }
+
+    final isCurrentlyFavorite = _favoriteStatus[stationId] ?? false;
+
+    try {
+      String backendUrl;
+      if (kIsWeb) {
+        backendUrl = isCurrentlyFavorite
+            ? 'http://localhost:5000/api/favorites/$stationId'
+            : 'http://localhost:5000/api/favorites/add';
+      } else if (Platform.isAndroid) {
+        backendUrl = isCurrentlyFavorite
+            ? 'http://10.0.2.2:5000/api/favorites/$stationId'
+            : 'http://10.0.2.2:5000/api/favorites/add';
+      } else if (Platform.isIOS) {
+        backendUrl = isCurrentlyFavorite
+            ? 'http://localhost:5000/api/favorites/$stationId'
+            : 'http://localhost:5000/api/favorites/add';
+      } else {
+        backendUrl = isCurrentlyFavorite
+            ? 'http://localhost:5000/api/favorites/$stationId'
+            : 'http://localhost:5000/api/favorites/add';
+      }
+
+      final response = isCurrentlyFavorite
+          ? await http.delete(
+              Uri.parse(backendUrl),
+              headers: {'Authorization': 'Bearer $_userToken'},
+            )
+          : await http.post(
+              Uri.parse(backendUrl),
+              headers: {
+                'Authorization': 'Bearer $_userToken',
+                'Content-Type': 'application/json',
+              },
+              body: json.encode({'stationId': stationId}),
+            );
+
+      if (response.statusCode == 200 || response.statusCode == 201) {
+        setState(() {
+          _favoriteStatus[stationId] = !isCurrentlyFavorite;
+        });
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(isCurrentlyFavorite
+                ? 'Removed from favorites'
+                : 'Added to favorites'),
+          ),
+        );
+      } else {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Failed to update favorite status')),
+        );
+      }
+    } catch (e) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Error updating favorite status')),
+      );
+    }
   }
 
   @override
@@ -232,20 +348,59 @@ class _BookSlotPageState extends State<BookSlotPage> {
                                                   fontWeight: FontWeight.bold),
                                             ),
                                           ),
-                                          Container(
-                                            padding: const EdgeInsets.symmetric(
-                                                horizontal: 8, vertical: 4),
-                                            decoration: BoxDecoration(
-                                              color: Colors.green[100],
-                                              borderRadius:
-                                                  BorderRadius.circular(20),
-                                            ),
-                                            child: const Text(
-                                              'OPEN NOW',
-                                              style: TextStyle(
-                                                  color: Colors.green,
-                                                  fontWeight: FontWeight.bold),
-                                            ),
+                                          Row(
+                                            children: [
+                                              IconButton(
+                                                icon: Icon(
+                                                  (_favoriteStatus[station[
+                                                                  '_id'] ??
+                                                              station['id']] ??
+                                                          false)
+                                                      ? Icons.favorite
+                                                      : Icons.favorite_border,
+                                                  color: (_favoriteStatus[
+                                                              station['_id'] ??
+                                                                  station[
+                                                                      'id']] ??
+                                                          false)
+                                                      ? Colors.red
+                                                      : Colors.grey,
+                                                ),
+                                                onPressed: () {
+                                                  final stationId =
+                                                      station['_id'] ??
+                                                          station['id'];
+                                                  if (stationId != null) {
+                                                    _toggleFavorite(stationId);
+                                                  }
+                                                },
+                                                tooltip: (_favoriteStatus[
+                                                            station['_id'] ??
+                                                                station[
+                                                                    'id']] ??
+                                                        false)
+                                                    ? 'Remove from favorites'
+                                                    : 'Add to favorites',
+                                              ),
+                                              Container(
+                                                padding:
+                                                    const EdgeInsets.symmetric(
+                                                        horizontal: 8,
+                                                        vertical: 4),
+                                                decoration: BoxDecoration(
+                                                  color: Colors.green[100],
+                                                  borderRadius:
+                                                      BorderRadius.circular(20),
+                                                ),
+                                                child: const Text(
+                                                  'OPEN NOW',
+                                                  style: TextStyle(
+                                                      color: Colors.green,
+                                                      fontWeight:
+                                                          FontWeight.bold),
+                                                ),
+                                              ),
+                                            ],
                                           ),
                                         ],
                                       ),

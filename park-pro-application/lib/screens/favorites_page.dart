@@ -1,4 +1,9 @@
 import 'package:flutter/material.dart';
+import 'package:http/http.dart' as http;
+import 'dart:convert';
+import 'package:shared_preferences/shared_preferences.dart';
+import 'package:flutter/foundation.dart' show kIsWeb;
+import 'dart:io';
 
 class FavoritesPage extends StatefulWidget {
   const FavoritesPage({super.key});
@@ -8,56 +13,127 @@ class FavoritesPage extends StatefulWidget {
 }
 
 class _FavoritesPageState extends State<FavoritesPage> {
-  // Use final instead of const
   final Color darkGray = const Color(0xFF1E1E1E);
   final Color electricBlue = const Color(0xFF2979FF);
 
-  List<Map<String, dynamic>> favoriteSpots = [
-    {
-      'id': '1',
-      'name': 'Downtown Parking',
-      'address': '123 Main St, City Center',
-      'pricePerHour': 5.99,
-      'distance': 0.8,
-      'rating': 4.5,
-      'totalSpots': 45,
-      'availableSpots': 12,
-      'isFavorite': true,
-    },
-    {
-      'id': '2',
-      'name': 'Mall Parking',
-      'address': '456 Shopping Ave, Mall Area',
-      'pricePerHour': 4.50,
-      'distance': 1.2,
-      'rating': 4.2,
-      'totalSpots': 200,
-      'availableSpots': 45,
-      'isFavorite': true,
-    },
-    {
-      'id': '3',
-      'name': 'Riverfront Parking',
-      'address': '789 River Rd, Waterfront',
-      'pricePerHour': 6.75,
-      'distance': 2.1,
-      'rating': 4.8,
-      'totalSpots': 30,
-      'availableSpots': 5,
-      'isFavorite': true,
-    },
-  ];
+  List<Map<String, dynamic>> favoriteSpots = [];
+  bool isLoading = true;
+  String? userEmail;
 
-  void _removeFromFavorites(Map<String, dynamic> spot) {
-    setState(() {
-      favoriteSpots.removeWhere((element) => element['id'] == spot['id']);
-    });
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Text('Removed ${spot['name']} from favorites'),
-        duration: const Duration(seconds: 2),
-      ),
-    );
+  @override
+  void initState() {
+    super.initState();
+    _loadUserData();
+  }
+
+  Future<void> _loadUserData() async {
+    final prefs = await SharedPreferences.getInstance();
+    userEmail = prefs.getString('userEmail');
+    if (userEmail != null) {
+      await _fetchFavorites();
+    } else {
+      setState(() {
+        isLoading = false;
+      });
+    }
+  }
+
+  Future<void> _fetchFavorites() async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final token = prefs.getString('token');
+
+      if (token == null) {
+        setState(() {
+          isLoading = false;
+        });
+        return;
+      }
+
+      String backendUrl;
+      if (kIsWeb) {
+        backendUrl = 'http://localhost:5000/api/favorites';
+      } else if (Platform.isAndroid) {
+        backendUrl = 'http://10.0.2.2:5000/api/favorites';
+      } else if (Platform.isIOS) {
+        backendUrl = 'http://localhost:5000/api/favorites';
+      } else {
+        backendUrl = 'http://localhost:5000/api/favorites';
+      }
+
+      final response = await http.get(
+        Uri.parse(backendUrl),
+        headers: {'Authorization': 'Bearer $token'},
+      );
+
+      if (response.statusCode == 200) {
+        final data = json.decode(response.body);
+        setState(() {
+          favoriteSpots =
+              List<Map<String, dynamic>>.from(data['favorites'] ?? []);
+          isLoading = false;
+        });
+      } else {
+        setState(() {
+          isLoading = false;
+        });
+      }
+    } catch (e) {
+      setState(() {
+        isLoading = false;
+      });
+    }
+  }
+
+  Future<void> _removeFromFavorites(String stationId) async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final token = prefs.getString('token');
+
+      if (token == null) return;
+
+      String backendUrl;
+      if (kIsWeb) {
+        backendUrl = 'http://localhost:5000/api/favorites/$stationId';
+      } else if (Platform.isAndroid) {
+        backendUrl = 'http://10.0.2.2:5000/api/favorites/$stationId';
+      } else if (Platform.isIOS) {
+        backendUrl = 'http://localhost:5000/api/favorites/$stationId';
+      } else {
+        backendUrl = 'http://localhost:5000/api/favorites/$stationId';
+      }
+
+      final response = await http.delete(
+        Uri.parse(backendUrl),
+        headers: {'Authorization': 'Bearer $token'},
+      );
+
+      if (response.statusCode == 200) {
+        setState(() {
+          favoriteSpots.removeWhere((spot) => spot['_id'] == stationId);
+        });
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Removed from favorites'),
+            duration: Duration(seconds: 2),
+          ),
+        );
+      } else {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Failed to remove from favorites'),
+            duration: Duration(seconds: 2),
+          ),
+        );
+      }
+    } catch (e) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Error removing from favorites'),
+          duration: Duration(seconds: 2),
+        ),
+      );
+    }
   }
 
   void _clearAllFavorites() {
@@ -179,14 +255,16 @@ class _FavoritesPageState extends State<FavoritesPage> {
                   child: Text(
                     spot['name'],
                     style: const TextStyle(
-                        fontSize: 18, fontWeight: FontWeight.bold, color: Colors.white),
+                        fontSize: 18,
+                        fontWeight: FontWeight.bold,
+                        color: Colors.white),
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,
                   ),
                 ),
                 IconButton(
                   icon: Icon(Icons.favorite, color: electricBlue),
-                  onPressed: () => _removeFromFavorites(spot),
+                  onPressed: () => _removeFromFavorites(spot['_id']),
                   tooltip: 'Remove from favorites',
                 ),
               ],
@@ -209,12 +287,14 @@ class _FavoritesPageState extends State<FavoritesPage> {
                 ),
                 _buildInfoChip(
                   icon: Icons.directions_car,
-                  text: '${spot['availableSpots']} available',
-                  color: (spot['availableSpots'] as int) > 5 ? electricBlue : Colors.orange,
+                  text: '${spot['availableSpots'] ?? 0} available',
+                  color: ((spot['availableSpots'] ?? 0) as int) > 5
+                      ? electricBlue
+                      : Colors.orange,
                 ),
                 _buildInfoChip(
                   icon: Icons.star,
-                  text: spot['rating'].toString(),
+                  text: (spot['rating'] ?? 0.0).toString(),
                   color: Colors.amber,
                 ),
               ],
@@ -227,7 +307,8 @@ class _FavoritesPageState extends State<FavoritesPage> {
                 style: ElevatedButton.styleFrom(
                   backgroundColor: electricBlue,
                   foregroundColor: Colors.white,
-                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                  shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(8)),
                 ),
                 child: const Text('Book Now'),
               ),
@@ -257,7 +338,8 @@ class _FavoritesPageState extends State<FavoritesPage> {
           const SizedBox(width: 4),
           Text(
             text,
-            style: TextStyle(fontSize: 12, fontWeight: FontWeight.w500, color: color),
+            style: TextStyle(
+                fontSize: 12, fontWeight: FontWeight.w500, color: color),
           ),
         ],
       ),

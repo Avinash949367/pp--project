@@ -234,6 +234,32 @@ class _BookingsPageState extends State<BookingsPage> {
     );
   }
 
+  String _getStationName(dynamic booking) {
+    // First try to get from populated stationId (if it's a Map with name)
+    if (booking['stationId'] != null &&
+        booking['stationId'] is Map &&
+        booking['stationId']['name'] != null) {
+      return booking['stationId']['name'];
+    }
+    // Then try from stationMap (fetched separately)
+    if (stationMap[booking['stationId']] != null &&
+        stationMap[booking['stationId']]['name'] != null) {
+      return stationMap[booking['stationId']]['name'];
+    }
+    // Fallback
+    return 'Unknown Station';
+  }
+
+  String _getSlotId(dynamic booking) {
+    if (booking['slotId'] != null) {
+      if (booking['slotId'] is Map && booking['slotId']['slotId'] != null) {
+        return booking['slotId']['slotId'];
+      }
+      return booking['slotId'].toString();
+    }
+    return 'N/A';
+  }
+
   Widget _buildCategoryButton(String category) {
     final bool isSelected = selectedCategory == category;
     return Expanded(
@@ -309,7 +335,7 @@ class _BookingsPageState extends State<BookingsPage> {
                           leading: const Icon(Icons.local_parking,
                               color: Colors.white),
                           title: Text(
-                            '${booking['stationName'] ?? stationMap[booking['stationId']] != null ? stationMap[booking['stationId']]['name'] : 'Unknown Station'} - Slot ${booking['slotId']?['slotId'] ?? booking['slotId'] ?? 'N/A'}',
+                            '${_getStationName(booking)} - Slot ${_getSlotId(booking)}',
                             style: const TextStyle(
                                 color: Colors.white,
                                 fontWeight: FontWeight.bold),
