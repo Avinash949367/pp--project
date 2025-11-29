@@ -60,4 +60,13 @@ router.get('/slotbookings/:userId', slotController.getSlotBookingsByUserId);
 // Cancel a booking
 router.put('/bookings/:bookingId/cancel', passport.authenticate('jwt', { session: false }), slotController.cancelBooking);
 
+// Get earnings data for station admin
+router.get('/earnings/:stationId', slotController.getEarningsData);
+
+// Get recent transactions for station admin
+router.get('/transactions/:stationId', slotController.getRecentTransactions);
+
+// Get booking data for station admin table
+router.get('/bookings-data/:stationId', slotController.getBookingsData);
+
 module.exports = router;
