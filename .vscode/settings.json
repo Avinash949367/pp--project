@@ -1,4 +1,9 @@
 {
+ HEAD
     "liveServer.settings.port": 5503,
     "cmake.sourceDirectory": "D:/BCA Capstone 25/park-pro-web/park-pro-application/windows/runner"
 }
+
+    "liveServer.settings.port": 5504
+}
+089d815 (changes for sidebar)

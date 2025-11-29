@@ -7,6 +7,56 @@
   <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
   <link rel="stylesheet" href="https://unpkg.com/leaflet@1.7.1/dist/leaflet.css" />
   <style>
+    /* Custom teal theme matching register-spot.html */
+    .sidebar-bg {
+      background: linear-gradient(135deg, #f0fdfd 0%, #e0f2f1 100%);
+      border-right: 1px solid #b2dfdb;
+    }
+    .sidebar-link {
+      color: #1e3740;
+      padding: 0.75rem 1rem;
+      border-radius: 0.5rem;
+      display: flex;
+      align-items: center;
+      gap: 0.75rem;
+      font-weight: 500;
+      transition: all 0.3s ease;
+      margin-bottom: 0.25rem;
+    }
+    .sidebar-link:hover {
+      background-color: #46949d;
+      color: white;
+      transform: translateX(5px);
+      box-shadow: 0 2px 8px rgba(70, 148, 157, 0.3);
+    }
+    .sidebar-link.active {
+      background-color: #46949d;
+      color: white;
+      font-weight: 700;
+      box-shadow: 0 2px 8px rgba(70, 148, 157, 0.4);
+    }
+    .sidebar-section-title {
+      color: #46949d;
+      font-weight: 700;
+      margin-top: 1.5rem;
+      margin-bottom: 0.5rem;
+      padding-left: 1rem;
+      text-transform: uppercase;
+      font-size: 0.875rem;
+      letter-spacing: 0.05em;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+    .sidebar-dropdown-menu {
+      display: none;
+      transition: all 0.3s ease;
+      padding-left: 1rem;
+    }
+    .sidebar-dropdown-menu.show {
+      display: block;
+    }
     #map {
       height: 500px;
       width: 100%;
@@ -93,28 +143,198 @@
 <body class="bg-gray-100">
   <div class="flex min-h-screen">
     <!-- Sidebar -->
-    <aside class="w-64 bg-gray-800 text-white flex flex-col py-6 px-4">
-      <h2 class="text-2xl font-bold mb-10 text-center">🚗 PARK PRO ADMIN</h2>
-      <nav class="flex flex-col space-y-4">
-        <a href="station_admin_dashboard.html" class="flex items-center space-x-2 hover:text-yellow-400">
-          <span>🏠</span><span>Dashboard</span>
+    <aside class="w-64 sidebar-bg flex flex-col py-6 px-4 shadow-lg">
+      <div class="text-center mb-8">
+        <h2 class="text-2xl font-bold text-[#46949d] flex items-center justify-center gap-2">
+          <i class="fas fa-car"></i>
+          PARK PRO
+        </h2>
+        <p class="text-sm text-gray-600 mt-1">Station Admin</p>
+      </div>
+
+      <!-- Dashboard - Direct Link -->
+      <a href="station_admin_dashboard.html" class="sidebar-link">
+        <i class="fas fa-tachometer-alt"></i>
+        <span>Dashboard</span>
+      </a>
+
+      <!-- Parking Management -->
+      <div class="sidebar-section-title" onclick="toggleDropdown('parkingDropdown')">
+        <span>Parking Management</span>
+        <i class="fas fa-chevron-down transition-transform duration-300" id="parkingIcon"></i>
+      </div>
+      <div id="parkingDropdown" class="sidebar-dropdown-menu">
+        <a href="station_management.html" class="sidebar-link">
+          <i class="fas fa-building"></i>
+          <span>Manage Station</span>
         </a>
-        <a href="station_management.html" class="flex items-center space-x-2 hover:text-yellow-400">
-          <span>🏢</span><span>Manage Station</span>
+        <a href="slot_management.html" class="sidebar-link">
+          <i class="fas fa-calendar-check"></i>
+          <span>Manage Slots & Bookings</span>
         </a>
-        <a href="gps_mapping.html" class="flex items-center space-x-2 text-yellow-400">
-          <span>🗺️</span><span>GPS Mapping</span>
+        <a href="station_visualization.html" class="sidebar-link">
+          <i class="fas fa-map-marked-alt"></i>
+          <span>Live Parking Map</span>
         </a>
-        <a href="slot_management.html" class="flex items-center space-x-2 hover:text-yellow-400">
-          <span>📅</span><span>View Bookings</span>
+        <a href="station_view_slots.html" class="sidebar-link">
+          <i class="fas fa-chart-bar"></i>
+          <span>Occupancy History</span>
         </a>
-        <a href="slot_earning.html" class="flex items-center space-x-2 hover:text-yellow-400">
-          <span>💰</span><span>Earnings</span>
+      </div>
+
+      <!-- Vehicle & User Management -->
+      <div class="sidebar-section-title" onclick="toggleDropdown('vehicleDropdown')">
+        <span>Vehicle & User Management</span>
+        <i class="fas fa-chevron-down transition-transform duration-300" id="vehicleIcon"></i>
+      </div>
+      <div id="vehicleDropdown" class="sidebar-dropdown-menu">
+        <a href="#" class="sidebar-link" title="Coming Soon">
+          <i class="fas fa-car"></i>
+          <span>Vehicle Logs</span>
         </a>
-        <a href="#" class="flex items-center space-x-2 mt-10 hover:text-red-400">
-          <span>🔓</span><span>Logout</span>
+        <a href="#" class="sidebar-link" title="Coming Soon">
+          <i class="fas fa-users"></i>
+          <span>Registered Users</span>
         </a>
-      </nav>
+        <a href="#" class="sidebar-link" title="Coming Soon">
+          <i class="fas fa-ban"></i>
+          <span>Blacklist / Watchlist</span>
+        </a>
+      </div>
+
+      <!-- Payments & Billing -->
+      <div class="sidebar-section-title" onclick="toggleDropdown('paymentsDropdown')">
+        <span>Payments & Billing</span>
+        <i class="fas fa-chevron-down transition-transform duration-300" id="paymentsIcon"></i>
+      </div>
+      <div id="paymentsDropdown" class="sidebar-dropdown-menu">
+        <a href="slot_earning.html" class="sidebar-link">
+          <i class="fas fa-money-bill-wave"></i>
+          <span>Payment Dashboard</span>
+        </a>
+        <a href="#" class="sidebar-link" title="Coming Soon">
+          <i class="fas fa-credit-card"></i>
+          <span>Tariff Management</span>
+        </a>
+        <a href="#" class="sidebar-link" title="Coming Soon">
+          <i class="fas fa-file-invoice"></i>
+          <span>Invoices & Receipts</span>
+        </a>
+        <a href="#" class="sidebar-link" title="Coming Soon">
+          <i class="fas fa-ticket-alt"></i>
+          <span>Subscriptions / Passes</span>
+        </a>
+      </div>
+
+      <!-- Security & Alerts -->
+      <div class="sidebar-section-title" onclick="toggleDropdown('securityDropdown')">
+        <span>Security & Alerts</span>
+        <i class="fas fa-chevron-down transition-transform duration-300" id="securityIcon"></i>
+      </div>
+      <div id="securityDropdown" class="sidebar-dropdown-menu">
+        <a href="#" class="sidebar-link" title="Coming Soon">
+          <i class="fas fa-video"></i>
+          <span>CCTV Integration</span>
+        </a>
+        <a href="#" class="sidebar-link" title="Coming Soon">
+          <i class="fas fa-exclamation-triangle"></i>
+          <span>Alerts & Violations</span>
+        </a>
+        <a href="#" class="sidebar-link" title="Coming Soon">
+          <i class="fas fa-siren"></i>
+          <span>Emergency Controls</span>
+        </a>
+      </div>
+
+      <!-- Staff & Operations -->
+      <div class="sidebar-section-title" onclick="toggleDropdown('staffDropdown')">
+        <span>Staff & Operations</span>
+        <i class="fas fa-chevron-down transition-transform duration-300" id="staffIcon"></i>
+      </div>
+      <div id="staffDropdown" class="sidebar-dropdown-menu">
+        <a href="#" class="sidebar-link" title="Coming Soon">
+          <i class="fas fa-user-tie"></i>
+          <span>Staff Management</span>
+        </a>
+        <a href="#" class="sidebar-link" title="Coming Soon">
+          <i class="fas fa-tasks"></i>
+          <span>Tasks & Checklists</span>
+        </a>
+        <a href="#" class="sidebar-link" title="Coming Soon">
+          <i class="fas fa-headset"></i>
+          <span>Support Requests</span>
+        </a>
+      </div>
+
+      <!-- Reports & Analytics -->
+      <div class="sidebar-section-title" onclick="toggleDropdown('reportsDropdown')">
+        <span>Reports & Analytics</span>
+        <i class="fas fa-chevron-down transition-transform duration-300" id="reportsIcon"></i>
+      </div>
+      <div id="reportsDropdown" class="sidebar-dropdown-menu">
+        <a href="#" class="sidebar-link" title="Coming Soon">
+          <i class="fas fa-chart-line"></i>
+          <span>Reports</span>
+        </a>
+        <a href="#" class="sidebar-link" title="Coming Soon">
+          <i class="fas fa-clock"></i>
+          <span>Peak Hours Analysis</span>
+        </a>
+        <a href="#" class="sidebar-link" title="Coming Soon">
+          <i class="fas fa-users-cog"></i>
+          <span>Customer Insights</span>
+        </a>
+      </div>
+
+      <!-- Settings -->
+      <div class="sidebar-section-title" onclick="toggleDropdown('settingsDropdown')">
+        <span>Settings</span>
+        <i class="fas fa-chevron-down transition-transform duration-300" id="settingsIcon"></i>
+      </div>
+      <div id="settingsDropdown" class="sidebar-dropdown-menu">
+        <a href="station_settings.html" class="sidebar-link">
+          <i class="fas fa-cog"></i>
+          <span>Station Settings</span>
+        </a>
+        <a href="#" class="sidebar-link" title="Coming Soon">
+          <i class="fas fa-lock"></i>
+          <span>Access Control</span>
+        </a>
+        <a href="#" class="sidebar-link" title="Coming Soon">
+          <i class="fas fa-desktop"></i>
+          <span>System Configuration</span>
+        </a>
+        <a href="#" class="sidebar-link" title="Coming Soon">
+          <i class="fas fa-palette"></i>
+          <span>Theme & Preferences</span>
+        </a>
+      </div>
+
+      <!-- Help & Support -->
+      <div class="sidebar-section-title" onclick="toggleDropdown('helpDropdown')">
+        <span>Help & Support</span>
+        <i class="fas fa-chevron-down transition-transform duration-300" id="helpIcon"></i>
+      </div>
+      <div id="helpDropdown" class="sidebar-dropdown-menu">
+        <a href="faq.html" class="sidebar-link">
+          <i class="fas fa-question-circle"></i>
+          <span>FAQ / Guides</span>
+        </a>
+        <a href="#" class="sidebar-link" title="Coming Soon">
+          <i class="fas fa-ticket"></i>
+          <span>Raise a Ticket</span>
+        </a>
+        <a href="contactus.html" class="sidebar-link">
+          <i class="fas fa-phone"></i>
+          <span>Contact Support</span>
+        </a>
+      </div>
+
+      <!-- Logout -->
+      <a href="station_adminlogin.html" class="sidebar-link mt-8 text-red-600 hover:bg-red-100 hover:text-red-700 border border-red-200">
+        <i class="fas fa-sign-out-alt"></i>
+        <span>Logout</span>
+      </a>
     </aside>
 
     <!-- Main Content -->
@@ -255,6 +475,21 @@
   <script src="https://unpkg.com/leaflet@1.7.1/dist/leaflet.js"></script>
 
   <script>
+    // Sidebar dropdown toggle function
+    function toggleDropdown(id) {
+      console.log('toggleDropdown called for:', id);
+      const dropdown = document.getElementById(id);
+      const icon = document.getElementById(id.replace('Dropdown', 'Icon'));
+
+      if (dropdown.classList.contains('show')) {
+        dropdown.classList.remove('show');
+        icon.style.transform = 'rotate(0deg)';
+      } else {
+        dropdown.classList.add('show');
+        icon.style.transform = 'rotate(180deg)';
+      }
+    }
+
     // Global variables
     let map;
     let currentLocation;
@@ -262,7 +497,7 @@
     let isPreviewMode = false;
     let currentStationId = null;
     let authToken = null;
-    
+
     // Station structure following the exact data format specified
     let stationData = {
       stationId: null,
@@ -273,14 +508,14 @@
       walls: [],
       roads: []
     };
-    
+
     // UI state
     let boundaryPoints = [];
     let currentWall = [];
     let currentRoad = [];
     let isRecordingWall = false;
     let isRecordingRoad = false;
-    
+
     // Map elements
     let boundaryPolygon = null;
     let entryMarker = null;
@@ -294,17 +529,17 @@
     function initializeAuth() {
       const user = JSON.parse(localStorage.getItem('user'));
       const token = localStorage.getItem('token');
-      
+
       if (!user || !token) {
         alert('Please login first');
         window.location.href = 'station_adminlogin.html';
         return false;
       }
-      
+
       authToken = token;
       currentStationId = user.stationId;
       stationData.stationId = currentStationId;
-      
+
       return true;
     }
 
@@ -1019,8 +1254,75 @@ Ready for Super Admin approval!
         initMap();
         await loadExistingGPSStructure();
         updateProgress();
+        await loadDynamicData();
       }
     };
+
+    // Load dynamic data like dashboard
+    async function loadDynamicData() {
+      try {
+        const user = JSON.parse(localStorage.getItem('user'));
+        const stationId = user.stationId;
+
+        if (!stationId) {
+          console.error('Station ID not found');
+          return;
+        }
+
+        const headers = {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${authToken}`
+        };
+
+        // Fetch dashboard stats for dynamic sidebar info
+        const statsResponse = await fetch(`http://localhost:5000/api/slots/dashboard-stats/${stationId}`, { headers });
+
+        if (statsResponse.ok) {
+          const stats = await statsResponse.json();
+
+          // Update any dynamic elements if needed
+          console.log('Dynamic stats loaded:', stats);
+
+          // Could add dynamic sidebar badges or status indicators here
+          updateSidebarWithDynamicData(stats);
+        }
+
+        // Fetch recent bookings for context
+        const bookingsResponse = await fetch(`http://localhost:5000/api/slots/recent-bookings/${stationId}`, { headers });
+
+        if (bookingsResponse.ok) {
+          const bookings = await bookingsResponse.json();
+          console.log('Recent bookings loaded:', bookings);
+
+          // Could use booking data for dynamic features
+        }
+
+      } catch (error) {
+        console.error('Error loading dynamic data:', error);
+      }
+    }
+
+    // Update sidebar with dynamic data
+    function updateSidebarWithDynamicData(stats) {
+      // Add dynamic badges or status indicators to sidebar
+      // For example, show occupancy status in parking management section
+
+      const parkingSection = document.querySelector('.sidebar-section-title');
+      if (parkingSection && stats) {
+        // Could add a badge showing current occupancy
+        const occupancyRate = stats.slotsBookedToday && stats.totalSlots ?
+          Math.round((stats.slotsBookedToday / stats.totalSlots) * 100) : 0;
+
+        // Add occupancy indicator to parking management title
+        parkingSection.innerHTML = `
+          <span>Parking Management</span>
+          <div class="flex items-center gap-2">
+            <span class="text-xs bg-blue-100 text-blue-800 px-2 py-1 rounded-full">${occupancyRate}% occupied</span>
+            <i class="fas fa-chevron-down transition-transform duration-300" id="parkingIcon"></i>
+          </div>
+        `;
+      }
+    }
   </script>
 </body>
 </html>
