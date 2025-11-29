@@ -10,54 +10,83 @@
     #map {
       height: 500px;
       width: 100%;
+      border-radius: 8px;
     }
-    .slot-status-available { background: #10b981; }
-    .slot-status-booked { background: #ef4444; }
-    .slot-status-disabled { background: #6b7280; }
-    .slot-marker {
-      border-radius: 4px;
+    .gps-coords {
+      background: #1f2937;
+      color: #f9fafb;
+      padding: 8px 12px;
+      border-radius: 6px;
+      font-family: monospace;
+      font-size: 14px;
+    }
+    .action-btn {
+      transition: all 0.2s;
+      border: 2px solid transparent;
+    }
+    .action-btn.active {
+      background: #10b981;
       color: white;
-      font-weight: bold;
-      font-size: 12px;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      min-width: 40px;
-      height: 20px;
-      padding: 2px 6px;
+      border-color: #059669;
+      transform: scale(1.05);
     }
-    .entry-marker {
-      background: #3b82f6;
-      color: white;
-      border-radius: 50%;
-      width: 30px;
-      height: 30px;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      font-weight: bold;
-    }
-    .exit-marker {
+    .action-btn.recording {
       background: #ef4444;
       color: white;
-      border-radius: 50%;
-      width: 30px;
-      height: 30px;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      font-weight: bold;
+      border-color: #dc2626;
+      animation: pulse 1s infinite;
     }
-    .road-polyline {
+    @keyframes pulse {
+      0%, 100% { opacity: 1; }
+      50% { opacity: 0.7; }
+    }
+    .slot-input {
+      position: absolute;
+      top: 10px;
+      right: 10px;
+      background: white;
+      padding: 12px;
+      border-radius: 8px;
+      box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+      z-index: 1000;
+      border: 1px solid #e5e7eb;
+    }
+    .progress-step {
+      transition: all 0.3s ease;
+    }
+    .progress-step.completed {
+      background: #10b981;
+      color: white;
+    }
+    .progress-step.in-progress {
+      background: #3b82f6;
+      color: white;
+    }
+    .map-controls {
+      position: absolute;
+      top: 10px;
+      left: 10px;
+      z-index: 1000;
+      background: white;
+      padding: 8px;
+      border-radius: 8px;
+      box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+    }
+    .boundary-polygon {
+      fill: rgba(59, 130, 246, 0.1);
+      stroke: #3b82f6;
+      stroke-width: 2;
+      stroke-dasharray: 5,5;
+    }
+    .wall-line {
+      stroke: #1f2937;
+      stroke-width: 3;
+      stroke-opacity: 0.8;
+    }
+    .road-line {
       stroke: #6b7280;
       stroke-width: 4;
       stroke-opacity: 0.8;
-    }
-    .edge-polyline {
-      stroke: #f59e0b;
-      stroke-width: 3;
-      stroke-opacity: 0.8;
-      fill: none;
     }
 
     /* Custom teal theme for sidebar */
@@ -314,16 +343,49 @@
       <!-- Header -->
       <div class="flex justify-between items-center mb-6">
         <div>
-          <h1 class="text-2xl font-semibold">Station Visualization</h1>
-          <p class="text-gray-600">Real-time view of your station structure and bookings</p>
+          <h1 class="text-2xl font-semibold">GPS Data Management</h1>
+          <p class="text-gray-600">Define your station's real-world structure using GPS mapping</p>
         </div>
-        <div class="flex space-x-2">
-          <button id="refreshData" class="px-4 py-2 bg-blue-500 text-white rounded hover:bg-blue-600">
-            🔄 Refresh
-          </button>
-          <button id="exportMap" class="px-4 py-2 bg-green-500 text-white rounded hover:bg-green-600">
-            📄 Export PDF
-          </button>
+        <div class="gps-coords">
+          <div>📍 GPS: <span id="currentCoords">Getting location...</span></div>
+          <div>🎯 Mode: <span id="currentMode">Select Action</span></div>
+        </div>
+      </div>
+
+      <!-- Workflow Progress -->
+      <div class="bg-white rounded-lg p-4 mb-6">
+        <h3 class="font-semibold mb-3">Station Setup Workflow</h3>
+        <div class="grid grid-cols-6 gap-4 text-center">
+          <div class="progress-step p-3 rounded-lg border-2 border-gray-300" id="boundaryProgress">
+            <div class="text-2xl">📐</div>
+            <div class="text-sm font-medium">Boundary</div>
+            <div class="text-xs text-gray-500" id="boundaryStatus">Not Set</div>
+          </div>
+          <div class="progress-step p-3 rounded-lg border-2 border-gray-300" id="entryProgress">
+            <div class="text-2xl">🚪</div>
+            <div class="text-sm font-medium">Entry</div>
+            <div class="text-xs text-gray-500" id="entryStatus">Not Set</div>
+          </div>
+          <div class="progress-step p-3 rounded-lg border-2 border-gray-300" id="exitProgress">
+            <div class="text-2xl">🚪</div>
+            <div class="text-sm font-medium">Exit</div>
+            <div class="text-xs text-gray-500" id="exitStatus">Not Set</div>
+          </div>
+          <div class="progress-step p-3 rounded-lg border-2 border-gray-300" id="slotsProgress">
+            <div class="text-2xl">🅿️</div>
+            <div class="text-sm font-medium">Slots</div>
+            <div class="text-xs text-gray-500" id="slotsStatus">0 Set</div>
+          </div>
+          <div class="progress-step p-3 rounded-lg border-2 border-gray-300" id="wallsProgress">
+            <div class="text-2xl">🧱</div>
+            <div class="text-sm font-medium">Walls</div>
+            <div class="text-xs text-gray-500" id="wallsStatus">0 Lines</div>
+          </div>
+          <div class="progress-step p-3 rounded-lg border-2 border-gray-300" id="roadsProgress">
+            <div class="text-2xl">🛣️</div>
+            <div class="text-sm font-medium">Roads</div>
+            <div class="text-xs text-gray-500" id="roadsStatus">0 Roads</div>
+          </div>
         </div>
       </div>
 
@@ -378,25 +440,86 @@
         </div>
       </div>
 
-      <!-- Map and Controls -->
-      <div class="grid grid-cols-1 lg:grid-cols-4 gap-6">
-        <!-- Map -->
-        <div class="lg:col-span-3">
-          <div class="bg-white rounded-lg p-4 shadow">
-            <div class="flex justify-between items-center mb-4">
-              <h3 class="font-semibold">Station Map</h3>
-              <div class="flex space-x-2">
-                <button id="toggleRoads" class="px-3 py-1 bg-gray-500 text-white rounded text-sm hover:bg-gray-600">
-                  🛣️ Toggle Roads
-                </button>
-            <button id="toggleWalls" class="px-3 py-1 bg-gray-500 text-white rounded text-sm hover:bg-gray-600">
-              🧱 Toggle Walls
+      <!-- Map Container -->
+      <div class="bg-white rounded-lg p-4 mb-6 relative">
+        <div class="flex justify-between items-center mb-4">
+          <h3 class="font-semibold">Google Maps-Style Station Editor</h3>
+          <div class="flex space-x-2">
+            <button id="previewMode" class="px-3 py-1 bg-blue-500 text-white rounded text-sm hover:bg-blue-600">
+              👁️ Preview
             </button>
-              </div>
-            </div>
-            <div id="map"></div>
+            <button id="clearMap" class="px-3 py-1 bg-red-500 text-white rounded text-sm hover:bg-red-600">
+              🗑️ Clear All
+            </button>
+            <button id="saveStructure" class="px-3 py-1 bg-green-500 text-white rounded text-sm hover:bg-green-600">
+              💾 Save Station Map
+            </button>
+            <button id="submitForApproval" class="px-3 py-1 bg-blue-500 text-white rounded text-sm hover:bg-blue-600">
+              📤 Submit for Approval
+            </button>
           </div>
         </div>
+
+        <!-- Map Controls -->
+        <div class="map-controls">
+          <div class="text-xs text-gray-600 mb-2">Map Controls</div>
+          <div class="flex flex-col space-y-1">
+            <button id="zoomIn" class="px-2 py-1 bg-white border rounded text-sm hover:bg-gray-50">+</button>
+            <button id="zoomOut" class="px-2 py-1 bg-white border rounded text-sm hover:bg-gray-50">-</button>
+          </div>
+        </div>
+
+        <div id="map"></div>
+      </div>
+
+      <!-- Action Buttons -->
+      <div class="bg-white rounded-lg p-6">
+        <h3 class="font-semibold mb-4">Station Mapping Controls</h3>
+        <div class="grid grid-cols-2 md:grid-cols-6 gap-4">
+          <button id="markBoundary" class="action-btn bg-blue-500 text-white p-4 rounded-lg hover:bg-blue-600">
+            <div class="text-2xl mb-2">📐</div>
+            <div class="font-semibold">Mark Point</div>
+            <div class="text-sm opacity-75">Boundary corner</div>
+          </button>
+
+          <button id="setEntry" class="action-btn bg-green-500 text-white p-4 rounded-lg hover:bg-green-600">
+            <div class="text-2xl mb-2">🚪</div>
+            <div class="font-semibold">Add Entry</div>
+            <div class="text-sm opacity-75">Entry gate</div>
+          </button>
+
+          <button id="setExit" class="action-btn bg-red-500 text-white p-4 rounded-lg hover:bg-red-600">
+            <div class="text-2xl mb-2">🚪</div>
+            <div class="font-semibold">Add Exit</div>
+            <div class="text-sm opacity-75">Exit gate</div>
+          </button>
+
+          <button id="addSlot" class="action-btn bg-blue-500 text-white p-4 rounded-lg hover:bg-blue-600">
+            <div class="text-2xl mb-2">🅿️</div>
+            <div class="font-semibold">Add Slot</div>
+            <div class="text-sm opacity-75">Parking slot</div>
+          </button>
+
+          <button id="addWall" class="action-btn bg-gray-800 text-white p-4 rounded-lg hover:bg-gray-900">
+            <div class="text-2xl mb-2">🧱</div>
+            <div class="font-semibold">Add Wall</div>
+            <div class="text-sm opacity-75">Wall/divider</div>
+          </button>
+
+          <button id="addRoad" class="action-btn bg-gray-500 text-white p-4 rounded-lg hover:bg-gray-600">
+            <div class="text-2xl mb-2">🛣️</div>
+            <div class="font-semibold">Add Road</div>
+            <div class="text-sm opacity-75">Internal path</div>
+          </button>
+        </div>
+      </div>
+
+      <!-- Slot Input Modal -->
+      <div id="slotModal" class="slot-input hidden">
+        <input type="text" id="slotId" placeholder="Slot ID (e.g., A1)" class="w-32 p-2 border rounded">
+        <button id="confirmSlot" class="ml-2 px-3 py-1 bg-green-500 text-white rounded text-sm">Add</button>
+        <button id="cancelSlot" class="ml-1 px-3 py-1 bg-gray-500 text-white rounded text-sm">Cancel</button>
+      </div>
 
         <!-- Controls and Info -->
         <div class="space-y-6">
@@ -478,300 +601,9 @@
   <script src="https://unpkg.com/leaflet@1.7.1/dist/leaflet.js"></script>
 
   <script>
-    // Global variables
-    let map;
-    let authToken = null;
-    let currentStationId = null;
-    let stationStructure = {
-      entry: null,
-      exit: null,
-      slots: [],
-      walls: [],
-      roads: []
-    };
-    let slotStatuses = {}; // Track slot booking status
-    let markers = {};
-    let polylines = [];
-    let roadsVisible = true;
-    let wallsVisible = true;
-
-    // Initialize authentication
-    function initializeAuth() {
-      const user = JSON.parse(localStorage.getItem('user'));
-      const token = localStorage.getItem('token');
-      
-      if (!user || !token) {
-        alert('Please login first');
-        window.location.href = 'station_adminlogin.html';
-        return false;
-      }
-      
-      authToken = token;
-      currentStationId = user.stationId;
-      
-      return true;
-    }
-
-    // Load GPS structure from backend
-    async function loadGPSStructure() {
-      try {
-        const response = await fetch(`/api/stations/${currentStationId}/gps-structure`, {
-          headers: {
-            'Authorization': `Bearer ${authToken}`,
-            'Content-Type': 'application/json'
-          }
-        });
-        
-        if (response.ok) {
-          const data = await response.json();
-          if (data.success && data.station.gpsStructure) {
-            const gps = data.station.gpsStructure;
-            stationStructure = {
-              entry: gps.entry ? [gps.entry.lat, gps.entry.lng] : null,
-              exit: gps.exit ? [gps.exit.lat, gps.exit.lng] : null,
-              slots: gps.slots || [],
-              walls: gps.walls || [],
-              roads: gps.roads || []
-            };
-            
-            // Convert slots to status format
-            slotStatuses = {};
-            stationStructure.slots.forEach(slot => {
-              slotStatuses[slot.id] = slot.status || 'available';
-            });
-            
-            renderStationMap();
-            updateSlotStats();
-          } else {
-            alert('No GPS structure found. Please complete GPS mapping first.');
-            window.location.href = 'gps_mapping.html';
-          }
-        } else {
-          alert('Error loading GPS structure. Please try again.');
-        }
-      } catch (error) {
-        console.error('Error loading GPS structure:', error);
-        alert('Error loading GPS structure. Please try again.');
-      }
-    }
-
-    // Initialize map
-    async function initMap() {
-      map = L.map('map').setView([12.9716, 77.5946], 18);
-
-      L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-        attribution: '&copy; OpenStreetMap contributors'
-      }).addTo(map);
-
-      // Load GPS structure from backend
-      await loadGPSStructure();
-    }
-
-    // Load station structure (legacy function for compatibility)
-    function loadStationStructure(data) {
-      stationStructure = data;
-      renderStationMap();
-    }
-
-    // Load slot statuses (legacy function for compatibility)
-    function loadSlotStatuses(statuses) {
-      slotStatuses = statuses;
-      updateSlotStats();
-      updateSlotMarkers();
-    }
-
-    // Render the complete station map
-    function renderStationMap() {
-      // Clear existing markers and polylines
-      Object.values(markers).forEach(marker => map.removeLayer(marker));
-      polylines.forEach(polyline => map.removeLayer(polyline));
-      markers = {};
-      polylines = [];
-
-      // Add entry marker
-      if (stationStructure.entry) {
-        const entryMarker = L.marker(stationStructure.entry, {
-          icon: L.divIcon({
-            className: 'entry-marker',
-            html: '<div class="entry-marker">IN</div>',
-            iconSize: [30, 30]
-          })
-        }).addTo(map);
-        markers.entry = entryMarker;
-      }
-
-      // Add exit marker
-      if (stationStructure.exit) {
-        const exitMarker = L.marker(stationStructure.exit, {
-          icon: L.divIcon({
-            className: 'exit-marker',
-            html: '<div class="exit-marker">OUT</div>',
-            iconSize: [30, 30]
-          })
-        }).addTo(map);
-        markers.exit = exitMarker;
-      }
-
-      // Add slot markers
-      stationStructure.slots.forEach(slot => {
-        const status = slotStatuses[slot.id] || 'available';
-        const statusClass = `slot-status-${status}`;
-        const coords = [slot.lat, slot.lng];
-        
-        const slotMarker = L.marker(coords, {
-          icon: L.divIcon({
-            className: 'slot-marker',
-            html: `<div class="slot-marker ${statusClass}">${slot.id}</div>`,
-            iconSize: [60, 20]
-          })
-        }).addTo(map);
-        
-        markers[`slot_${slot.id}`] = slotMarker;
-      });
-
-      // Add roads
-      if (roadsVisible && stationStructure.roads) {
-        stationStructure.roads.forEach(road => {
-          const roadCoords = road.map(point => [point.lat, point.lng]);
-          const polyline = L.polyline(roadCoords, {
-            color: '#6b7280',
-            weight: 4,
-            opacity: 0.8
-          }).addTo(map);
-          polylines.push(polyline);
-        });
-      }
-
-      // Add walls
-      if (wallsVisible && stationStructure.walls) {
-        stationStructure.walls.forEach(wall => {
-          const wallCoords = wall.map(point => [point.lat, point.lng]);
-          const polyline = L.polyline(wallCoords, {
-            color: '#1f2937',
-            weight: 3,
-            opacity: 0.8
-          }).addTo(map);
-          polylines.push(polyline);
-        });
-      }
-    }
-
-    // Update slot markers based on status
-    function updateSlotMarkers() {
-      stationStructure.slots.forEach(slot => {
-        const markerKey = `slot_${slot.id}`;
-        if (markers[markerKey]) {
-          map.removeLayer(markers[markerKey]);
-        }
-        
-        const status = slotStatuses[slot.id] || 'available';
-        const statusClass = `slot-status-${status}`;
-        const coords = [slot.lat, slot.lng];
-        
-        const slotMarker = L.marker(coords, {
-          icon: L.divIcon({
-            className: 'slot-marker',
-            html: `<div class="slot-marker ${statusClass}">${slot.id}</div>`,
-            iconSize: [60, 20]
-          })
-        }).addTo(map);
-        
-        markers[markerKey] = slotMarker;
-      });
-    }
-
-    // Update slot statistics
-    function updateSlotStats() {
-      const total = Object.keys(slotStatuses).length;
-      const available = Object.values(slotStatuses).filter(status => status === 'available').length;
-      const booked = Object.values(slotStatuses).filter(status => status === 'booked').length;
-      const disabled = Object.values(slotStatuses).filter(status => status === 'disabled').length;
-
-      document.getElementById('totalSlots').textContent = total;
-      document.getElementById('availableSlots').textContent = available;
-      document.getElementById('bookedSlots').textContent = booked;
-      document.getElementById('disabledSlots').textContent = disabled;
-    }
-
-    // Toggle roads visibility
-    function toggleRoads() {
-      roadsVisible = !roadsVisible;
-      renderStationMap();
-      updateSlotMarkers();
-      
-      const btn = document.getElementById('toggleRoads');
-      btn.textContent = roadsVisible ? '🛣️ Hide Roads' : '🛣️ Show Roads';
-    }
-
-    // Toggle walls visibility
-    function toggleWalls() {
-      wallsVisible = !wallsVisible;
-      renderStationMap();
-      updateSlotMarkers();
-      
-      const btn = document.getElementById('toggleWalls');
-      btn.textContent = wallsVisible ? '🧱 Hide Walls' : '🧱 Show Walls';
-    }
-
-    // Disable all slots
-    function disableAllSlots() {
-      if (confirm('Are you sure you want to disable all slots?')) {
-        Object.keys(slotStatuses).forEach(slotId => {
-          slotStatuses[slotId] = 'disabled';
-        });
-        updateSlotStats();
-        updateSlotMarkers();
-        alert('All slots have been disabled');
-      }
-    }
-
-    // Enable all slots
-    function enableAllSlots() {
-      if (confirm('Are you sure you want to enable all slots?')) {
-        Object.keys(slotStatuses).forEach(slotId => {
-          slotStatuses[slotId] = 'available';
-        });
-        updateSlotStats();
-        updateSlotMarkers();
-        alert('All slots have been enabled');
-      }
-    }
-
-    // Refresh data
-    function refreshData() {
-      // In a real application, this would fetch fresh data from the server
-      alert('Data refreshed!');
-    }
-
-    // Export map as PDF
-    function exportMap() {
-      // In a real application, this would generate and download a PDF
-      alert('PDF export feature would be implemented here');
-    }
-
-    // View bookings
-    function viewBookings() {
-      window.location.href = 'slot_management.html';
-    }
-
-    // Event listeners
-    document.getElementById('toggleRoads').addEventListener('click', toggleRoads);
-    document.getElementById('toggleWalls').addEventListener('click', toggleWalls);
-    document.getElementById('disableAllSlots').addEventListener('click', disableAllSlots);
-    document.getElementById('enableAllSlots').addEventListener('click', enableAllSlots);
-    document.getElementById('refreshData').addEventListener('click', refreshData);
-    document.getElementById('exportMap').addEventListener('click', exportMap);
-    document.getElementById('viewBookings').addEventListener('click', viewBookings);
-
-    // Initialize on page load
-    window.onload = async () => {
-      if (initializeAuth()) {
-        await initMap();
-      }
-    };
-
     // Sidebar dropdown toggle function
-    function toggleDropdown(id) {
+    window.toggleDropdown = function(id) {
+      console.log('toggleDropdown called for:', id);
       const dropdown = document.getElementById(id);
       const icon = document.getElementById(id.replace('Dropdown', 'Icon'));
 
@@ -782,7 +614,831 @@
         dropdown.classList.add('show');
         icon.style.transform = 'rotate(180deg)';
       }
+    };
+
+    // Global variables
+    let map;
+    let currentLocation;
+    let currentMode = null;
+    let isPreviewMode = false;
+    let currentStationId = null;
+    let authToken = null;
+
+    // Station structure following the exact data format specified
+    let stationData = {
+      stationId: null,
+      boundary: [],
+      entry: null,
+      exit: null,
+      slots: [],
+      walls: [],
+      roads: []
+    };
+
+    // UI state
+    let boundaryPoints = [];
+    let currentWall = [];
+    let currentRoad = [];
+    let isRecordingWall = false;
+    let isRecordingRoad = false;
+
+    // Map elements
+    let boundaryPolygon = null;
+    let entryMarker = null;
+    let exitMarker = null;
+    let slotMarkers = [];
+    let wallPolylines = [];
+    let roadPolylines = [];
+    let boundaryMarkers = [];
+
+    // Initialize authentication and station data
+    function initializeAuth() {
+      const user = JSON.parse(localStorage.getItem('user'));
+      const token = localStorage.getItem('token');
+
+      if (!user || !token) {
+        alert('Please login first');
+        window.location.href = 'station_adminlogin.html';
+        return false;
+      }
+
+      authToken = token;
+      currentStationId = user.stationId;
+      stationData.stationId = currentStationId;
+
+      return true;
     }
+
+    // Load existing GPS structure from backend
+    async function loadExistingGPSStructure() {
+      try {
+        const response = await fetch(`/api/stations/${currentStationId}/gps-structure`, {
+          headers: {
+            'Authorization': `Bearer ${authToken}`,
+            'Content-Type': 'application/json'
+          }
+        });
+
+        if (response.ok) {
+          const data = await response.json();
+          if (data.success && data.station.gpsStructure) {
+            stationData = {
+              stationId: currentStationId,
+              boundary: data.station.gpsStructure.boundary || [],
+              entry: data.station.gpsStructure.entry || null,
+              exit: data.station.gpsStructure.exit || null,
+              slots: data.station.gpsStructure.slots || [],
+              walls: data.station.gpsStructure.walls || [],
+              roads: data.station.gpsStructure.roads || []
+            };
+
+            // Render existing data on map
+            renderExistingData();
+            updateProgress();
+
+            // Show status message
+            const status = data.station.gpsMappingStatus;
+            if (status === 'completed') {
+              alert('Existing GPS structure loaded. You can continue editing or submit for approval.');
+            } else if (status === 'submitted_for_approval') {
+              alert('GPS structure is submitted for approval. Awaiting Super Admin review.');
+            } else if (status === 'approved') {
+              alert('GPS structure is approved! You can make the station public.');
+            }
+          }
+        }
+      } catch (error) {
+        console.error('Error loading GPS structure:', error);
+      }
+    }
+
+    // Render existing GPS data on map
+    function renderExistingData() {
+      // Render boundary
+      if (stationData.boundary.length >= 3) {
+        const boundaryCoords = stationData.boundary.map(point => [point.lat, point.lng]);
+        boundaryPolygon = L.polygon(boundaryCoords, {
+          color: '#3b82f6',
+          weight: 2,
+          opacity: 0.8,
+          fillOpacity: 0.1,
+          dashArray: '5, 5'
+        }).addTo(map);
+        boundaryPoints = boundaryCoords;
+      }
+
+      // Render entry
+      if (stationData.entry) {
+        entryMarker = L.marker([stationData.entry.lat, stationData.entry.lng], {
+          icon: L.divIcon({
+            className: 'entry-marker',
+            html: '<div style="background: #10b981; color: white; border-radius: 50%; width: 30px; height: 30px; display: flex; align-items: center; justify-content: center; font-weight: bold;">IN</div>',
+            iconSize: [30, 30]
+          })
+        }).addTo(map);
+      }
+
+      // Render exit
+      if (stationData.exit) {
+        exitMarker = L.marker([stationData.exit.lat, stationData.exit.lng], {
+          icon: L.divIcon({
+            className: 'exit-marker',
+            html: '<div style="background: #ef4444; color: white; border-radius: 50%; width: 30px; height: 30px; display: flex; align-items: center; justify-content: center; font-weight: bold;">OUT</div>',
+            iconSize: [30, 30]
+          })
+        }).addTo(map);
+      }
+
+      // Render slots
+      stationData.slots.forEach(slot => {
+        const marker = L.marker([slot.lat, slot.lng], {
+          icon: L.divIcon({
+            className: 'slot-marker',
+            html: `<div style="background: #3b82f6; color: white; border-radius: 4px; padding: 2px 6px; font-size: 12px; font-weight: bold;">${slot.id}</div>`,
+            iconSize: [60, 20]
+          })
+        }).addTo(map);
+        slotMarkers.push(marker);
+      });
+
+      // Render walls
+      stationData.walls.forEach(wall => {
+        const wallCoords = wall.map(point => [point.lat, point.lng]);
+        const polyline = L.polyline(wallCoords, {
+          color: '#1f2937',
+          weight: 3,
+          opacity: 0.8
+        }).addTo(map);
+        wallPolylines.push(polyline);
+      });
+
+      // Render roads
+      stationData.roads.forEach(road => {
+        const roadCoords = road.map(point => [point.lat, point.lng]);
+        const polyline = L.polyline(roadCoords, {
+          color: '#6b7280',
+          weight: 4,
+          opacity: 0.8
+        }).addTo(map);
+        roadPolylines.push(polyline);
+      });
+    }
+
+    // Initialize map
+    function initMap() {
+      map = L.map('map').setView([12.9716, 77.5946], 18);
+
+      L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+        attribution: '&copy; OpenStreetMap contributors'
+      }).addTo(map);
+
+      // Get current location
+      if (navigator.geolocation) {
+        navigator.geolocation.getCurrentPosition(
+          (position) => {
+            currentLocation = [position.coords.latitude, position.coords.longitude];
+            map.setView(currentLocation, 18);
+            updateGPSDisplay();
+          },
+          (error) => {
+            console.error('Error getting location:', error);
+            updateGPSDisplay();
+          }
+        );
+      }
+
+      // Watch location changes
+      if (navigator.geolocation) {
+        navigator.geolocation.watchPosition(
+          (position) => {
+            currentLocation = [position.coords.latitude, position.coords.longitude];
+            updateGPSDisplay();
+          },
+          (error) => {
+            console.error('Error watching location:', error);
+          },
+          { enableHighAccuracy: true, maximumAge: 1000 }
+        );
+      }
+    }
+
+    // Update GPS display
+    function updateGPSDisplay() {
+      const coordsElement = document.getElementById('currentCoords');
+      if (currentLocation) {
+        coordsElement.textContent = `${currentLocation[0].toFixed(6)}, ${currentLocation[1].toFixed(6)}`;
+      } else {
+        coordsElement.textContent = 'Location unavailable';
+      }
+    }
+
+    // Update mode display
+    function updateModeDisplay(mode) {
+      document.getElementById('currentMode').textContent = mode || 'Select Action';
+    }
+
+    // Update progress indicators
+    function updateProgress() {
+      // Boundary
+      const boundaryDiv = document.getElementById('boundaryProgress');
+      const boundaryStatus = document.getElementById('boundaryStatus');
+      if (stationData.boundary.length >= 3) {
+        boundaryDiv.classList.add('completed');
+        boundaryStatus.textContent = `${stationData.boundary.length} Points`;
+      } else {
+        boundaryDiv.classList.remove('completed');
+        boundaryStatus.textContent = 'Not Set';
+      }
+
+      // Entry
+      const entryDiv = document.getElementById('entryProgress');
+      const entryStatus = document.getElementById('entryStatus');
+      if (stationData.entry) {
+        entryDiv.classList.add('completed');
+        entryStatus.textContent = 'Set';
+      } else {
+        entryDiv.classList.remove('completed');
+        entryStatus.textContent = 'Not Set';
+      }
+
+      // Exit
+      const exitDiv = document.getElementById('exitProgress');
+      const exitStatus = document.getElementById('exitStatus');
+      if (stationData.exit) {
+        exitDiv.classList.add('completed');
+        exitStatus.textContent = 'Set';
+      } else {
+        exitDiv.classList.remove('completed');
+        exitStatus.textContent = 'Not Set';
+      }
+
+      // Slots
+      const slotsDiv = document.getElementById('slotsProgress');
+      const slotsStatus = document.getElementById('slotsStatus');
+      const slotCount = stationData.slots.length;
+      if (slotCount > 0) {
+        slotsDiv.classList.add('completed');
+        slotsStatus.textContent = `${slotCount} Set`;
+      } else {
+        slotsDiv.classList.remove('completed');
+        slotsStatus.textContent = '0 Set';
+      }
+
+      // Walls
+      const wallsDiv = document.getElementById('wallsProgress');
+      const wallsStatus = document.getElementById('wallsStatus');
+      const wallCount = stationData.walls.length;
+      if (wallCount > 0) {
+        wallsDiv.classList.add('completed');
+        wallsStatus.textContent = `${wallCount} Lines`;
+      } else {
+        wallsDiv.classList.remove('completed');
+        wallsStatus.textContent = '0 Lines';
+      }
+
+      // Roads
+      const roadsDiv = document.getElementById('roadsProgress');
+      const roadsStatus = document.getElementById('roadsStatus');
+      const roadCount = stationData.roads.length;
+      if (roadCount > 0) {
+        roadsDiv.classList.add('completed');
+        roadsStatus.textContent = `${roadCount} Roads`;
+      } else {
+        roadsDiv.classList.remove('completed');
+        roadsStatus.textContent = '0 Roads';
+      }
+    }
+
+    // Mark boundary point
+    function markBoundaryPoint() {
+      if (!currentLocation) {
+        alert('GPS location not available. Please enable location services.');
+        return;
+      }
+
+      const point = { lat: currentLocation[0], lng: currentLocation[1] };
+      stationData.boundary.push(point);
+      boundaryPoints.push(currentLocation);
+
+      // Add boundary marker
+      const marker = L.circleMarker(currentLocation, {
+        radius: 6,
+        color: '#3b82f6',
+        fillColor: '#3b82f6',
+        fillOpacity: 0.8
+      }).addTo(map);
+      boundaryMarkers.push(marker);
+
+      // Update boundary polygon if we have enough points
+      if (stationData.boundary.length >= 3) {
+        if (boundaryPolygon) {
+          map.removeLayer(boundaryPolygon);
+        }
+        boundaryPolygon = L.polygon(boundaryPoints, {
+          color: '#3b82f6',
+          weight: 2,
+          opacity: 0.8,
+          fillOpacity: 0.1,
+          dashArray: '5, 5'
+        }).addTo(map);
+      }
+
+      updateProgress();
+      alert(`Boundary point ${stationData.boundary.length} added!`);
+    }
+
+    // Set entry point
+    function setEntry() {
+      if (!currentLocation) {
+        alert('GPS location not available. Please enable location services.');
+        return;
+      }
+
+      stationData.entry = { lat: currentLocation[0], lng: currentLocation[1] };
+
+      // Remove existing entry marker
+      if (entryMarker) {
+        map.removeLayer(entryMarker);
+      }
+
+      // Add new entry marker (Green)
+      entryMarker = L.marker(currentLocation, {
+        icon: L.divIcon({
+          className: 'entry-marker',
+          html: '<div style="background: #10b981; color: white; border-radius: 50%; width: 30px; height: 30px; display: flex; align-items: center; justify-content: center; font-weight: bold;">IN</div>',
+          iconSize: [30, 30]
+        })
+      }).addTo(map);
+
+      updateProgress();
+      alert('Entry point set!');
+    }
+
+    // Set exit point
+    function setExit() {
+      if (!currentLocation) {
+        alert('GPS location not available. Please enable location services.');
+        return;
+      }
+
+      stationData.exit = { lat: currentLocation[0], lng: currentLocation[1] };
+
+      // Remove existing exit marker
+      if (exitMarker) {
+        map.removeLayer(exitMarker);
+      }
+
+      // Add new exit marker (Red)
+      exitMarker = L.marker(currentLocation, {
+        icon: L.divIcon({
+          className: 'exit-marker',
+          html: '<div style="background: #ef4444; color: white; border-radius: 50%; width: 30px; height: 30px; display: flex; align-items: center; justify-content: center; font-weight: bold;">OUT</div>',
+          iconSize: [30, 30]
+        })
+      }).addTo(map);
+
+      updateProgress();
+      alert('Exit point set!');
+    }
+
+    // Add slot
+    function addSlot() {
+      if (!currentLocation) {
+        alert('GPS location not available. Please enable location services.');
+        return;
+      }
+
+      // Show slot input modal
+      document.getElementById('slotModal').classList.remove('hidden');
+      document.getElementById('slotId').focus();
+    }
+
+    // Confirm slot
+    function confirmSlot() {
+      const slotId = document.getElementById('slotId').value.trim();
+      if (!slotId) {
+        alert('Please enter a slot ID');
+        return;
+      }
+
+      // Check if slot ID already exists
+      if (stationData.slots.find(slot => slot.id === slotId)) {
+        alert('Slot ID already exists');
+        return;
+      }
+
+      const slot = {
+        id: slotId,
+        lat: currentLocation[0],
+        lng: currentLocation[1],
+        status: "enabled"
+      };
+
+      stationData.slots.push(slot);
+
+      // Add slot marker (Blue)
+      const marker = L.marker(currentLocation, {
+        icon: L.divIcon({
+          className: 'slot-marker',
+          html: `<div style="background: #3b82f6; color: white; border-radius: 4px; padding: 2px 6px; font-size: 12px; font-weight: bold;">${slotId}</div>`,
+          iconSize: [60, 20]
+        })
+      }).addTo(map);
+
+      slotMarkers.push(marker);
+
+      // Hide modal and clear input
+      document.getElementById('slotModal').classList.add('hidden');
+      document.getElementById('slotId').value = '';
+
+      updateProgress();
+      alert(`Slot ${slotId} added!`);
+    }
+
+    // Cancel slot
+    function cancelSlot() {
+      document.getElementById('slotModal').classList.add('hidden');
+      document.getElementById('slotId').value = '';
+    }
+
+    // Start recording wall
+    function startRecordingWall() {
+      if (!currentLocation) {
+        alert('GPS location not available. Please enable location services.');
+        return;
+      }
+
+      isRecordingWall = true;
+      currentWall = [[...currentLocation]];
+
+      // Update button state
+      const btn = document.getElementById('addWall');
+      btn.classList.add('recording');
+      btn.innerHTML = `
+        <div class="text-2xl mb-2">🧱</div>
+        <div class="font-semibold">Recording...</div>
+        <div class="text-sm opacity-75">Click to stop</div>
+      `;
+
+      updateModeDisplay('Recording Wall');
+      alert('Wall recording started! Walk along the wall and click "Stop Recording" when done.');
+    }
+
+    // Stop recording wall
+    function stopRecordingWall() {
+      if (currentWall.length < 2) {
+        alert('Wall must have at least 2 points');
+        return;
+      }
+
+      isRecordingWall = false;
+
+      // Convert to the required format
+      const wallLine = currentWall.map(point => ({ lat: point[0], lng: point[1] }));
+      stationData.walls.push(wallLine);
+
+      // Add wall polyline (Black)
+      const polyline = L.polyline(currentWall, {
+        color: '#1f2937',
+        weight: 3,
+        opacity: 0.8
+      }).addTo(map);
+
+      wallPolylines.push(polyline);
+      currentWall = [];
+
+      // Reset button state
+      const btn = document.getElementById('addWall');
+      btn.classList.remove('recording');
+      btn.innerHTML = `
+        <div class="text-2xl mb-2">🧱</div>
+        <div class="font-semibold">Add Wall</div>
+        <div class="text-sm opacity-75">Wall/divider</div>
+      `;
+
+      updateModeDisplay('Select Action');
+      updateProgress();
+      alert(`Wall ${stationData.walls.length} recorded!`);
+    }
+
+    // Start recording road
+    function startRecordingRoad() {
+      if (!currentLocation) {
+        alert('GPS location not available. Please enable location services.');
+        return;
+      }
+
+      isRecordingRoad = true;
+      currentRoad = [[...currentLocation]];
+
+      // Update button state
+      const btn = document.getElementById('addRoad');
+      btn.classList.add('recording');
+      btn.innerHTML = `
+        <div class="text-2xl mb-2">🛣️</div>
+        <div class="font-semibold">Recording...</div>
+        <div class="text-sm opacity-75">Click to stop</div>
+      `;
+
+      updateModeDisplay('Recording Road');
+      alert('Road recording started! Walk or drive along the path and click "Stop Recording" when done.');
+    }
+
+    // Stop recording road
+    function stopRecordingRoad() {
+      if (currentRoad.length < 2) {
+        alert('Road must have at least 2 points');
+        return;
+      }
+
+      isRecordingRoad = false;
+
+      // Convert to the required format
+      const roadLine = currentRoad.map(point => ({ lat: point[0], lng: point[1] }));
+      stationData.roads.push(roadLine);
+
+      // Add road polyline (Gray)
+      const polyline = L.polyline(currentRoad, {
+        color: '#6b7280',
+        weight: 4,
+        opacity: 0.8
+      }).addTo(map);
+
+      roadPolylines.push(polyline);
+      currentRoad = [];
+
+      // Reset button state
+      const btn = document.getElementById('addRoad');
+      btn.classList.remove('recording');
+      btn.innerHTML = `
+        <div class="text-2xl mb-2">🛣️</div>
+        <div class="font-semibold">Add Road</div>
+        <div class="text-sm opacity-75">Internal path</div>
+      `;
+
+      updateModeDisplay('Select Action');
+      updateProgress();
+      alert(`Road ${stationData.roads.length} recorded!`);
+    }
+
+    // Clear all data
+    function clearAll() {
+      if (confirm('Are you sure you want to clear all mapping data?')) {
+        stationData = {
+          stationId: "ST001",
+          boundary: [],
+          entry: null,
+          exit: null,
+          slots: [],
+          walls: [],
+          roads: []
+        };
+
+        // Clear all map elements
+        if (boundaryPolygon) map.removeLayer(boundaryPolygon);
+        if (entryMarker) map.removeLayer(entryMarker);
+        if (exitMarker) map.removeLayer(exitMarker);
+        slotMarkers.forEach(marker => map.removeLayer(marker));
+        wallPolylines.forEach(polyline => map.removeLayer(polyline));
+        roadPolylines.forEach(polyline => map.removeLayer(polyline));
+        boundaryMarkers.forEach(marker => map.removeLayer(marker));
+
+        // Reset variables
+        boundaryPolygon = null;
+        entryMarker = null;
+        exitMarker = null;
+        slotMarkers = [];
+        wallPolylines = [];
+        roadPolylines = [];
+        boundaryMarkers = [];
+        boundaryPoints = [];
+
+        updateProgress();
+        alert('All mapping data cleared!');
+      }
+    }
+
+    // Preview mode
+    function togglePreviewMode() {
+      isPreviewMode = !isPreviewMode;
+      const btn = document.getElementById('previewMode');
+
+      if (isPreviewMode) {
+        btn.textContent = '✏️ Edit Mode';
+        btn.classList.remove('bg-blue-500');
+        btn.classList.add('bg-yellow-500');
+        // Hide all action buttons
+        document.querySelectorAll('.action-btn').forEach(btn => {
+          btn.style.display = 'none';
+        });
+        alert('Preview Mode: You can view the station structure but cannot edit.');
+      } else {
+        btn.textContent = '👁️ Preview';
+        btn.classList.remove('bg-yellow-500');
+        btn.classList.add('bg-blue-500');
+        // Show all action buttons
+        document.querySelectorAll('.action-btn').forEach(btn => {
+          btn.style.display = 'block';
+        });
+      }
+    }
+
+    // Save structure to backend
+    async function saveStructure() {
+      if (!stationData.entry || !stationData.exit) {
+        alert('Please set both entry and exit points before saving');
+        return;
+      }
+
+      if (stationData.slots.length === 0) {
+        alert('Please add at least one parking slot before saving');
+        return;
+      }
+
+      if (stationData.boundary.length < 3) {
+        alert('Please mark at least 3 boundary points to define the station perimeter');
+        return;
+      }
+
+      try {
+        const response = await fetch(`/api/stations/${currentStationId}/gps-structure`, {
+          method: 'PUT',
+          headers: {
+            'Authorization': `Bearer ${authToken}`,
+            'Content-Type': 'application/json'
+          },
+          body: JSON.stringify({
+            gpsStructure: stationData
+          })
+        });
+
+        const data = await response.json();
+
+        if (response.ok && data.success) {
+          // Show confirmation with data summary
+          const summary = `
+Station Map Saved Successfully!
+
+📐 Boundary: ${stationData.boundary.length} points
+🚪 Entry: Set at ${stationData.entry.lat.toFixed(6)}, ${stationData.entry.lng.toFixed(6)}
+🚪 Exit: Set at ${stationData.exit.lat.toFixed(6)}, ${stationData.exit.lng.toFixed(6)}
+🅿️ Slots: ${stationData.slots.length} slots
+🧱 Walls: ${stationData.walls.length} wall sections
+🛣️ Roads: ${stationData.roads.length} road paths
+
+Status: ${data.station.gpsMappingStatus}
+Ready for Super Admin approval!
+          `;
+
+          alert(summary);
+        } else {
+          alert(`Error saving structure: ${data.message}`);
+        }
+      } catch (error) {
+        console.error('Error saving GPS structure:', error);
+        alert('Error saving GPS structure. Please try again.');
+      }
+    }
+
+    // Submit for approval
+    async function submitForApproval() {
+      if (!stationData.entry || !stationData.exit || stationData.slots.length === 0) {
+        alert('Please complete the GPS mapping before submitting for approval');
+        return;
+      }
+
+      if (confirm('Are you sure you want to submit this station for Super Admin approval?')) {
+        try {
+          const response = await fetch(`/api/stations/${currentStationId}/submit-for-approval`, {
+            method: 'POST',
+            headers: {
+              'Authorization': `Bearer ${authToken}`,
+              'Content-Type': 'application/json'
+            }
+          });
+
+          const data = await response.json();
+
+          if (response.ok && data.success) {
+            alert('Station submitted for approval successfully! Awaiting Super Admin review.');
+          } else {
+            alert(`Error submitting for approval: ${data.message}`);
+          }
+        } catch (error) {
+          console.error('Error submitting for approval:', error);
+          alert('Error submitting for approval. Please try again.');
+        }
+      }
+    }
+
+    // Event listeners
+    document.getElementById('markBoundary').addEventListener('click', markBoundaryPoint);
+    document.getElementById('setEntry').addEventListener('click', setEntry);
+    document.getElementById('setExit').addEventListener('click', setExit);
+    document.getElementById('addSlot').addEventListener('click', addSlot);
+    document.getElementById('addWall').addEventListener('click', () => {
+      if (isRecordingWall) {
+        stopRecordingWall();
+      } else {
+        startRecordingWall();
+      }
+    });
+    document.getElementById('addRoad').addEventListener('click', () => {
+      if (isRecordingRoad) {
+        stopRecordingRoad();
+      } else {
+        startRecordingRoad();
+      }
+    });
+    document.getElementById('confirmSlot').addEventListener('click', confirmSlot);
+    document.getElementById('cancelSlot').addEventListener('click', cancelSlot);
+    document.getElementById('clearMap').addEventListener('click', clearAll);
+    document.getElementById('saveStructure').addEventListener('click', saveStructure);
+    document.getElementById('submitForApproval').addEventListener('click', submitForApproval);
+    document.getElementById('previewMode').addEventListener('click', togglePreviewMode);
+
+    // Map zoom controls
+    document.getElementById('zoomIn').addEventListener('click', () => {
+      map.zoomIn();
+    });
+    document.getElementById('zoomOut').addEventListener('click', () => {
+      map.zoomOut();
+    });
+
+    // Handle Enter key in slot input
+    document.getElementById('slotId').addEventListener('keydown', (e) => {
+      if (e.key === 'Enter') {
+        confirmSlot();
+      } else if (e.key === 'Escape') {
+        cancelSlot();
+      }
+    });
+
+    // Initialize on page load
+    window.onload = async () => {
+      if (initializeAuth()) {
+        initMap();
+        await loadExistingGPSStructure();
+        updateProgress();
+        await loadDynamicData();
+      }
+    };
+
+    // Load dynamic data like dashboard
+    async function loadDynamicData() {
+      try {
+        const user = JSON.parse(localStorage.getItem('user'));
+        const stationId = user.stationId;
+
+        if (!stationId) {
+          console.error('Station ID not found');
+          return;
+        }
+
+        const headers = {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${authToken}`
+        };
+
+        // Fetch dashboard stats for dynamic sidebar info
+
+        // Fetch recent bookings for context
+        const bookingsResponse = await fetch(`http://localhost:5000/api/slots/recent-bookings/${stationId}`, { headers });
+
+        if (bookingsResponse.ok) {
+          const bookings = await bookingsResponse.json();
+          console.log('Recent bookings loaded:', bookings);
+
+          // Could use booking data for dynamic features
+        }
+
+      } catch (error) {
+        console.error('Error loading dynamic data:', error);
+      }
+    }
+
+    // Update sidebar with dynamic data
+    function updateSidebarWithDynamicData(stats) {
+      // Add dynamic badges or status indicators to sidebar
+      // For example, show occupancy status in parking management section
+
+      const parkingSection = document.querySelector('.sidebar-section-title');
+      if (parkingSection && stats) {
+        // Could add a badge showing current occupancy
+        const occupancyRate = stats.slotsBookedToday && stats.totalSlots ?
+          Math.round((stats.slotsBookedToday / stats.totalSlots) * 100) : 0;
+
+        // Add occupancy indicator to parking management title
+        parkingSection.innerHTML = `
+          <span>Parking Management</span>
+          <div class="flex items-center gap-2">
+            <span class="text-xs bg-blue-100 text-blue-800 px-2 py-1 rounded-full">${occupancyRate}% occupied</span>
+            <i class="fas fa-chevron-down transition-transform duration-300" id="parkingIcon"></i>
+          </div>
+        `;
+      }
+    }
+
   </script>
 </body>
 </html>
