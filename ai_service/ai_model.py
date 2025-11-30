@@ -1,3 +1,5 @@
+
+
 import re
 import nltk
 from nltk.corpus import stopwords
@@ -10,6 +12,36 @@ import logging
 import time
 import random
 from datetime import datetime
+
+class SessionContext:
+    """
+    Manages session-based context for better conversation flow.
+    """
+    def __init__(self):
+        self.context = {}
+        self.history = []
+
+    def update_context(self, key: str, value: Any):
+        """Update a specific context key."""
+        self.context[key] = value
+
+    def get_context(self, key: str, default=None):
+        """Get a context value."""
+        return self.context.get(key, default)
+
+    def add_to_history(self, user_input: str, response: str):
+        """Add interaction to history."""
+        self.history.append({'user': user_input, 'response': response})
+        # Keep last 10 interactions
+        self.history = self.history[-10:]
+
+    def get_recent_history(self, n: int = 3) -> List[Dict]:
+        """Get recent history entries."""
+        return self.history[-n:] if self.history else []
+
+    def clear_context(self):
+        """Clear all context."""
+        self.context = {}
 
 class AIModel:
     def __init__(self):
@@ -25,7 +57,7 @@ class AIModel:
         except Exception as e:
             self.logger.warning(f"NLTK stopwords download failed (may already exist): {e}")
         self.stop_words = set(stopwords.words('english'))
-        self.sessions: Dict[str, Dict[str, Any]] = {}  # session_id -> {'history': list, 'context': dict}
+        self.sessions: Dict[str, SessionContext] = {}  # session_id -> SessionContext
 
         # Human-like behavior settings
         self.thinking_delay = 0.3  # seconds to simulate thinking - reduced for better flow
@@ -108,9 +140,9 @@ class AIModel:
         Remember user preferences for more personalized interactions.
         """
         if 'vehicle_type' in entities:
-            self.sessions[session_id]['context']['preferred_vehicle'] = entities['vehicle_type']
+            self.sessions[session_id].update_context('preferred_vehicle', entities['vehicle_type'])
         if 'city' in entities:
-            self.sessions[session_id]['context']['preferred_city'] = entities['city']
+            self.sessions[session_id].update_context('preferred_city', entities['city'])
 
     def _detect_user_frustration(self, text: str) -> bool:
         """
@@ -126,8 +158,8 @@ class AIModel:
         """
         Handle frustrated users with empathy and solutions.
         """
-        context = self.sessions[session_id]['context']
-        history = self.sessions[session_id]['history']
+        context = self.sessions[session_id].context
+        history = self.sessions[session_id].history
 
         # Check if this is repeated frustration
         recent_frustrations = [h for h in history[-3:] if any(word in h['user'].lower() for word in ['again', 'still', 'why can\'t', 'not working', 'frustrated', 'annoying', 'ugh', 'seriously'])]
@@ -171,21 +203,40 @@ class AIModel:
         """
         # Track successful interactions
         if 'thank' in user_input.lower() or 'great' in user_input.lower():
-            self.sessions[session_id]['context']['successful_patterns'] = \
-                self.sessions[session_id]['context'].get('successful_patterns', [])
+            self.sessions[session_id].context['successful_patterns'] = \
+                self.sessions[session_id].context.get('successful_patterns', [])
             # Store the last successful interaction pattern
-            if len(self.sessions[session_id]['history']) >= 2:
+            if len(self.sessions[session_id].history) >= 2:
                 pattern = {
-                    'user_input': self.sessions[session_id]['history'][-2]['user'],
-                    'response': self.sessions[session_id]['history'][-2]['response']
+                    'user_input': self.sessions[session_id].history[-2]['user'],
+                    'response': self.sessions[session_id].history[-2]['response']
                 }
-                self.sessions[session_id]['context']['successful_patterns'].append(pattern)
+                self.sessions[session_id].context['successful_patterns'].append(pattern)
+
+    def _resolve_slot_references(self, text: str, session_id: str) -> str:
+        """
+        Handle natural references like 'the first one', 'that slot', etc.
+        """
+        context = self.sessions[session_id].context
+        last_slots = context.get('last_slots', [])
+
+        reference_map = {
+            'first': 0, 'second': 1, 'third': 2, 'fourth': 3, 'fifth': 4,
+            'last': -1, 'that': -1, 'this': -1, 'the one': -1
+        }
+
+        for ref, index in reference_map.items():
+            if ref in text.lower():
+                if last_slots and abs(index) < len(last_slots):
+                    return last_slots[index]['slotId']
+
+        return None
 
     def _adjust_personality_based_on_context(self, session_id: str, intent: str) -> str:
         """
         Adjust personality based on context and time of day.
         """
-        context = self.sessions[session_id]['context']
+        context = self.sessions[session_id].context
 
         # Time-based greetings
         current_hour = datetime.now().hour
@@ -203,30 +254,11 @@ class AIModel:
         else:
             return "casual"
 
-    def _resolve_slot_references(self, text: str, session_id: str) -> str:
-        """
-        Handle natural references like 'the first one', 'that slot', etc.
-        """
-        context = self.sessions[session_id]['context']
-        last_slots = context.get('last_slots', [])
-
-        reference_map = {
-            'first': 0, 'second': 1, 'third': 2, 'fourth': 3, 'fifth': 4,
-            'last': -1, 'that': -1, 'this': -1, 'the one': -1
-        }
-
-        for ref, index in reference_map.items():
-            if ref in text.lower():
-                if last_slots and abs(index) < len(last_slots):
-                    return last_slots[index]['slotId']
-
-        return None
-
     def _enhance_booking_flow(self, session_id: str, entities: dict) -> str:
         """
         Add more human-like elements to booking flow.
         """
-        context = self.sessions[session_id]['context']
+        context = self.sessions[session_id].context
 
         # Check for time conflicts or suggest better times
         if entities.get('start_time'):
@@ -261,8 +293,8 @@ class AIModel:
         """
         Determine if we should check in with the user.
         """
-        context = self.sessions[session_id]['context']
-        history = self.sessions[session_id]['history']
+        context = self.sessions[session_id].context
+        history = self.sessions[session_id].history
 
         # Check if user has been inactive or might need help
         if len(history) > 5 and not any('help' in h['user'].lower() for h in history[-3:]):
@@ -334,7 +366,7 @@ class AIModel:
         """
         Generate proactive questions to guide users or gather missing info.
         """
-        context = self.sessions[session_id]['context']
+        context = self.sessions[session_id].context
 
         # If user just viewed slots, offer to help with booking
         if intent == 'view_slots' and context.get('last_slots'):
@@ -357,6 +389,62 @@ class AIModel:
         # If user seems lost, offer guidance
         if intent == 'unknown':
             return "I'm here to help with parking! I can show you available slots, help you book parking, check your bookings, or find parking stations. What would you like to do?"
+
+        return ""
+
+    def _generate_followup_question(self, session_id: str, intent: str, entities: dict, response: str) -> str:
+        """
+        Generate intelligent follow-up questions based on the current response and context.
+        """
+        context = self.sessions[session_id].context
+
+        # Don't add follow-ups if the response already contains a question
+        if '?' in response:
+            return ""
+
+        # Don't add follow-ups for clarification requests
+        if intent == 'clarification_needed':
+            return ""
+
+        # Don't add follow-ups for unknown intents that already have guidance
+        if intent == 'unknown' and ('help' in response.lower() or 'assist' in response.lower()):
+            return ""
+
+        # After showing stations, ask about booking
+        if intent == 'display_stations' and context.get('last_station'):
+            return "Would you like to book a slot at one of these stations?"
+
+        # After showing slots, ask about booking
+        if (intent == 'view_slots' or intent == 'view_slots_filtered') and context.get('last_slots'):
+            available_count = len([s for s in context['last_slots'] if s.get('availability') == 'Free'])
+            if available_count > 0:
+                return f"I see there are {available_count} slots available. Would you like to book one of them?"
+            else:
+                return "Would you like me to check slots at a different station or time?"
+
+        # After successful booking, ask about next steps
+        if intent == 'book_slot' and 'success' in response.lower():
+            return "Would you like to view your bookings or book another slot?"
+
+        # After showing bookings, ask about actions
+        if intent == 'navigate_bookings' and 'bookings' in response.lower():
+            return "Would you like to cancel a booking or book a new slot?"
+
+        # After payment history, ask about other services
+        if intent == 'view_payment_history':
+            return "Would you like to book a new slot or check your bookings?"
+
+        # After emergency contacts, offer further help
+        if intent == 'emergency':
+            return "Is there anything else I can help you with regarding parking?"
+
+        # General follow-up for other successful operations
+        if any(word in response.lower() for word in ['here are', 'showing', 'found', 'available']):
+            return "Is there anything else I can help you with?"
+
+        # For greetings or general responses, offer assistance
+        if intent in ['greet', 'unknown'] and not any(word in response.lower() for word in ['help', 'assist', 'what would']):
+            return "How can I assist you with parking today?"
 
         return ""
 
@@ -397,8 +485,8 @@ class AIModel:
 
         # Context-aware boosting using session information
         if session_id and session_id in self.sessions:
-            context = self.sessions[session_id]['context']
-            history = self.sessions[session_id]['history']
+            context = self.sessions[session_id].context
+            history = self.sessions[session_id].history
 
             # Boost booking-related intents if user was recently discussing slots
             if context.get('last_slots') and any(intent in intent_scores for intent in ['book_slot', 'view_slots']):
@@ -548,9 +636,27 @@ class AIModel:
         if any(word in preprocessed for word in ['station', 'location', 'place', 'where']) and any(word in preprocessed for word in ['parking', 'park']):
             return 'display_stations'
 
+        # Check for city-only mentions with context (e.g., "bangalore" after "show parking stations")
+        if entities.get('city') and not any(word in preprocessed for word in ['show', 'view', 'find', 'parking', 'station', 'slots', 'book', 'available']):
+            if session_id and session_id in self.sessions:
+                context = self.sessions[session_id].context
+                history = self.sessions[session_id].history
+
+                # If user was recently viewing stations, update the search with new city
+                if (context.get('last_station') or
+                    any(h['response'].lower().find('station') != -1 for h in history[-3:]) or
+                    any(h['user'].lower().find('station') != -1 for h in history[-3:])):
+                    return 'display_stations'
+
+                # If user was recently viewing slots, filter slots by new city
+                if (context.get('last_slots') or
+                    any(h['response'].lower().find('slot') != -1 for h in history[-3:]) or
+                    any(h['user'].lower().find('slot') != -1 for h in history[-3:])):
+                    return 'view_slots_filtered'
+
         # Context-based fallbacks
         if session_id and session_id in self.sessions:
-            context = self.sessions[session_id]['context']
+            context = self.sessions[session_id].context
 
             # If user was looking at slots, they might want to book
             if context.get('last_slots') and any(word in preprocessed for word in ['that', 'this', 'it', 'one']):
@@ -564,9 +670,33 @@ class AIModel:
 
     def extract_entities(self, text: str) -> dict:
         """
-        Extract entities using regex rules and apply corrections.
+        Extract entities using enhanced rules including better location recognition.
         """
         entities = {}
+        text_lower = text.lower()
+
+        # Location entities - enhanced to recognize cities like "bangalore"
+        cities = ['bangalore', 'delhi', 'mumbai', 'chennai', 'kolkata', 'hyderabad', 'pune', 'ahmedabad', 'jaipur', 'surat']
+        for city in cities:
+            if city in text_lower:
+                entities['city'] = city
+                break
+
+        # Vehicle type entities
+        vehicle_types = ['car', 'cars', 'bike', 'bikes', 'scooter', 'scooters',
+                        'motorcycle', 'motorcycles', 'vehicle', 'vehicles']
+        for vehicle in vehicle_types:
+            if vehicle in text_lower:
+                entities['vehicle_type'] = vehicle.rstrip('s')  # Remove plural
+                break
+
+        # Parking type entities
+        parking_types = ['available', 'empty', 'vacant', 'free', 'occupied', 'full']
+        for parking_type in parking_types:
+            if parking_type in text_lower:
+                entities['availability'] = parking_type
+                break
+
         # Extract 'this station' reference first
         if re.search(r'this.*station[s]?', text, re.IGNORECASE) or re.search(r'\bthis\b', text, re.IGNORECASE):
             entities['station'] = 'this'
@@ -579,8 +709,11 @@ class AIModel:
                 if value not in ['parking']:
                     entities['station'] = value
 
-        # Extract other entities
+        # Extract other entities using existing regex rules
         for entity, regex in ENTITY_RULES.items():
+            # Skip time_range as it's handled specially below
+            if entity == 'time_range':
+                continue
             match = re.search(regex, text, re.IGNORECASE)
             if match:
                 value = match.group(1).lower()
@@ -591,6 +724,14 @@ class AIModel:
                 if entity == 'city' and 'station' in entities and value == entities['station']:
                     continue
                 entities[entity] = value
+
+        # Special handling for time_range entity
+        time_range_match = re.search(ENTITY_RULES['time_range'], text, re.IGNORECASE)
+        if time_range_match:
+            start_time = time_range_match.group(1).lower()
+            end_time = time_range_match.group(2).lower()
+            entities['start_time'] = start_time
+            entities['end_time'] = end_time
 
         # Extract vehicle type from patterns like "bike slots", "car parking", etc.
         vehicle_patterns = [
@@ -619,14 +760,13 @@ class AIModel:
         self.logger.info(f"Getting AI response for session {session_id}: {text}")
         # Initialize session if not exists
         if session_id not in self.sessions:
-            self.sessions[session_id] = {'history': [], 'context': {}}
+            self.sessions[session_id] = SessionContext()
 
         # Fix 1: Integrate sentiment detection early
         sentiment = self._detect_sentiment(text)
         if sentiment == 'negative':
-            empathy_msg = self._get_personality_response('empathy')
             # Store empathy context for response enhancement
-            self.sessions[session_id]['context']['current_sentiment'] = 'negative'
+            self.sessions[session_id].context['current_sentiment'] = 'negative'
 
         # Fix 6: Check for frustration early
         if self._detect_user_frustration(text):
@@ -634,13 +774,162 @@ class AIModel:
             if frustration_response:
                 return frustration_response
 
+        # Handle awaiting_booking_yes responses
+        if text.lower() == 'yes' and self.sessions[session_id].context.get('awaiting_booking_yes'):
+            self.sessions[session_id].context['collecting_booking_info'] = {'step': 'vehicle_type'}
+            self.sessions[session_id].context.pop('awaiting_booking_yes', None)
+            result = {
+                'intent': 'unknown',
+                'response': "Great! What type of vehicle do you have? (car, bike, scooter)",
+                'action': None,
+                'screen': None,
+                'params': {},
+                'entities': {}
+            }
+            return result
+        elif text.lower() == 'no' and self.sessions[session_id].context.get('awaiting_booking_yes'):
+            self.sessions[session_id].context.pop('awaiting_booking_yes', None)
+            result = {
+                'intent': 'unknown',
+                'response': "Okay, is there anything else I can help with?",
+                'action': None,
+                'screen': None,
+                'params': {},
+                'entities': {}
+            }
+            return result
+
+        # Handle collecting_booking_info steps
+        collecting = self.sessions[session_id].context.get('collecting_booking_info')
+        if collecting:
+            if collecting['step'] == 'vehicle_type':
+                entities = self.extract_entities(text)
+                if entities.get('vehicle_type'):
+                    collecting['vehicle_type'] = entities['vehicle_type']
+                    collecting['step'] = 'date'
+                    result = {
+                        'intent': 'unknown',
+                        'response': "Got it. What date would you like to book? (e.g., tomorrow, 15-12-2024)",
+                        'action': None,
+                        'screen': None,
+                        'params': {},
+                        'entities': {}
+                    }
+                    return result
+                else:
+                    result = {
+                        'intent': 'unknown',
+                        'response': "Please specify a valid vehicle type: car, bike, or scooter.",
+                        'action': None,
+                        'screen': None,
+                        'params': {},
+                        'entities': {}
+                    }
+                    return result
+            elif collecting['step'] == 'date':
+                entities = self.extract_entities(text)
+                if entities.get('date'):
+                    collecting['date'] = entities['date']
+                    collecting['step'] = 'timings'
+                    result = {
+                        'intent': 'unknown',
+                        'response': "Perfect. What time would you like to park? Please provide start and end time (e.g., from 2pm to 5pm).",
+                        'action': None,
+                        'screen': None,
+                        'params': {},
+                        'entities': {}
+                    }
+                    return result
+                else:
+                    result = {
+                        'intent': 'unknown',
+                        'response': "Please provide a valid date, like 'tomorrow' or '15-12-2024'.",
+                        'action': None,
+                        'screen': None,
+                        'params': {},
+                        'entities': {}
+                    }
+                    return result
+            elif collecting['step'] == 'timings':
+                entities = self.extract_entities(text)
+                if entities.get('start_time') and entities.get('end_time'):
+                    collecting['start_time'] = entities['start_time']
+                    collecting['end_time'] = entities['end_time']
+                    # Proceed to view slots
+                    last_station = self.sessions[session_id].context.get('last_station')
+                    if last_station:
+                        # Create the intent for proxy call
+                        proxy_intent = {
+                            'intent': 'view_slots_filtered',
+                            'entities': {
+                                'city': self.sessions[session_id].context.get('last_city'),
+                                'vehicle_type': collecting['vehicle_type'],
+                                'availability': 'available'
+                            }
+                        }
+                        # Fetch slots data
+                        proxy_result = self.proxy_to_backend_with_token(proxy_intent, token, session_id)
+                        if proxy_result['status'] == 'success':
+                            slots = proxy_result['data']
+                            # Filter for available slots only
+                            slots = [slot for slot in slots if slot.get('availability') == 'Free']
+                            result = {
+                                'intent': 'view_slots_filtered',
+                                'response': f"Got it. Here are the available slots for your {collecting['vehicle_type']} on {collecting['date']} from {collecting['start_time']} to {collecting['end_time']} at {last_station} station.",
+                                'action': 'display',
+                                'screen': 'slots',
+                                'params': {'filter_available': True},
+                                'entities': {
+                                    'city': self.sessions[session_id].context.get('last_city'),
+                                    'vehicle_type': collecting['vehicle_type'],
+                                    'availability': 'available'
+                                },
+                                'data': slots
+                            }
+                            # Store slots in context for booking reference
+                            self.sessions[session_id].context['last_slots'] = slots
+                        else:
+                            result = {
+                                'intent': 'view_slots_filtered',
+                                'response': "Failed to fetch available slots. Please try again.",
+                                'action': None,
+                                'screen': None,
+                                'params': {},
+                                'entities': {},
+                                'data': []
+                            }
+                        # Store collected info for booking
+                        self.sessions[session_id].context['collected_booking_info'] = collecting.copy()
+                        self.sessions[session_id].context.pop('collecting_booking_info', None)
+                        return result
+                    else:
+                        result = {
+                            'intent': 'unknown',
+                            'response': "No station context available. Please try again.",
+                            'action': None,
+                            'screen': None,
+                            'params': {},
+                            'entities': {}
+                        }
+                        return result
+                else:
+                    result = {
+                        'intent': 'unknown',
+                        'response': "Please provide both start and end times, like 'from 2pm to 5pm'.",
+                        'action': None,
+                        'screen': None,
+                        'params': {},
+                        'entities': {}
+                    }
+                    return result
+
         # Handle pending booking confirmations and actions first, before parsing intent
-        pending_booking = self.sessions[session_id]['context'].get('pending_booking')
+        pending_booking = self.sessions[session_id].context.get('pending_booking')
 
         # Handle cancellation at any point
         if text.lower() in ['no', 'cancel', 'nevermind']:
             if pending_booking:
-                self.sessions[session_id]['context'].pop('pending_booking', None)
+                self.sessions[session_id].context.pop('pending_booking', None)
                 result = {
                     'intent': 'unknown',
                     'response': "Booking cancelled. Let me know if you need help with anything else.",
@@ -717,7 +1006,7 @@ class AIModel:
                     'entities': {}
                 }
                 # Clear pending booking context
-                self.sessions[session_id]['context'].pop('pending_booking', None)
+                self.sessions[session_id].context.pop('pending_booking', None)
             else:
                 result = {
                     'intent': 'book_slot',
@@ -731,6 +1020,49 @@ class AIModel:
 
         # Parse intent for new requests
         result = self.parse_intent(text, session_id)
+
+        # Update pending booking with extracted entities if any
+        pending_booking = self.sessions[session_id].context.get('pending_booking')
+        if pending_booking:
+            entities = result.get('entities', {})
+            updated = False
+            if entities.get('date') and not pending_booking.get('date'):
+                pending_booking['date'] = entities['date']
+                updated = True
+            if entities.get('start_time') and not pending_booking.get('start_time'):
+                pending_booking['start_time'] = entities['start_time']
+                updated = True
+            if entities.get('end_time') and not pending_booking.get('end_time'):
+                pending_booking['end_time'] = entities['end_time']
+                updated = True
+            if updated:
+                if pending_booking.get('date') and pending_booking.get('start_time') and pending_booking.get('end_time'):
+                    result = {
+                        'intent': 'book_slot',
+                        'response': f"Booking details: Slot {pending_booking['slot_id']}, Date: {pending_booking['date']}, Time: {pending_booking['start_time']} to {pending_booking['end_time']}. Please choose payment method: 'razorpay' or 'coupon BOOKFREE'.",
+                        'action': None,
+                        'screen': None,
+                        'params': {},
+                        'entities': pending_booking
+                    }
+                    pending_booking['awaiting_payment_method'] = True
+                else:
+                    missing_info = []
+                    if not pending_booking.get('date'):
+                        missing_info.append('date')
+                    if not pending_booking.get('start_time'):
+                        missing_info.append('start time')
+                    if not pending_booking.get('end_time'):
+                        missing_info.append('end time')
+                    missing_str = ', '.join(missing_info)
+                    result = {
+                        'intent': 'unknown',
+                        'response': f"To complete your booking, please provide the {missing_str}.",
+                        'action': None,
+                        'screen': None,
+                        'params': {},
+                        'entities': {}
+                    }
 
         # 🚨 CRITICAL FIX: Enhanced ambiguity detection for missing location
         if result['intent'] in ['view_slots', 'view_slots_filtered', 'display_stations']:
@@ -752,7 +1084,7 @@ class AIModel:
         self._remember_user_preferences(session_id, result['entities'])
 
         # 🚨 CRITICAL FIX: Fill missing entities from user preferences (only for non-ambiguous cases)
-        context = self.sessions[session_id]['context']
+        context = self.sessions[session_id].context
         if not result['entities'].get('city') and context.get('preferred_city'):
             result['entities']['city'] = context['preferred_city']
         if not result['entities'].get('vehicle_type') and context.get('preferred_vehicle'):
@@ -765,7 +1097,7 @@ class AIModel:
 
         # Handle 'this station' reference
         if 'station' in result['entities'] and result['entities']['station'] == 'this':
-            last_station = self.sessions[session_id]['context'].get('last_station')
+            last_station = self.sessions[session_id].context.get('last_station')
             if last_station:
                 result['entities']['station'] = last_station
 
@@ -779,11 +1111,11 @@ class AIModel:
             result['screen'] = None
             result['params'] = {}
             # Store the original result for later use
-            self.sessions[session_id]['context']['pending_clarification'] = result.copy()
+            self.sessions[session_id].context['pending_clarification'] = result.copy()
             return result
 
         # Use history for context (simple example: if unknown and previous was help, suggest again)
-        history = self.sessions[session_id]['history']
+        history = self.sessions[session_id].history
         if result['intent'] == 'unknown' and history and 'help' in history[-1]['response'].lower():
             result['response'] = "Still need help? I can assist with booking slots, viewing bookings, etc."
         elif result['intent'] == 'unknown':
@@ -816,13 +1148,19 @@ class AIModel:
                 if stations:
                     city = result['entities'].get('city')
                     if city:
-                        self.sessions[session_id]['context']['last_city'] = city
-                    # Store the first station as last_station for context
-                    if stations and stations[0].get('stationName'):
-                        self.sessions[session_id]['context']['last_station'] = stations[0]['stationName'].lower()
-                    result['response'] = f"Here are the available parking stations in {result['entities'].get('city', 'your area')}:"
+                        self.sessions[session_id].context['last_city'] = city
+                    # Store the first station's ID and name for context
+                    if stations:
+                        first_station = stations[0]
+                        self.sessions[session_id].context['last_station_id'] = first_station.get('stationId')
+                        if first_station.get('stationName'):
+                            self.sessions[session_id].context['last_station'] = first_station['stationName'].lower()
+                        else:
+                            self.sessions[session_id].context['last_station'] = first_station.get('name', 'Unknown').lower()
+                    result['response'] = f"Here are the available parking stations in {result['entities'].get('city', 'your area')} - I found {len(stations)}:"
                     result['action'] = 'display'
                     result['screen'] = 'stations'
+                    self.sessions[session_id].context['awaiting_booking_yes'] = True
                 else:
                     result['response'] = f"No parking stations found in {result['entities'].get('city', 'your area')}."
             else:
@@ -851,11 +1189,11 @@ class AIModel:
                     slots = [slot for slot in slots if slot.get('availability') == 'Free']
                 result['data'] = slots
                 # Store slots in context for booking reference
-                self.sessions[session_id]['context']['last_slots'] = slots
+                self.sessions[session_id].context['last_slots'] = slots
                 if slots:
                     # Use last mentioned station if available, else city
-                    last_station = self.sessions[session_id]['context'].get('last_station')
-                    last_city = self.sessions[session_id]['context'].get('last_city')
+                    last_station = self.sessions[session_id].context.get('last_station')
+                    last_city = self.sessions[session_id].context.get('last_city')
                     if last_station:
                         if result.get('params', {}).get('filter_available', False):
                             result['response'] = f"Here are the available slots at {last_station} station:"
@@ -888,7 +1226,7 @@ class AIModel:
                 slots = [slot for slot in slots if slot.get('availability') == 'Free']
                 result['data'] = slots
                 # Store slots in context for booking reference
-                self.sessions[session_id]['context']['last_slots'] = slots
+                self.sessions[session_id].context['last_slots'] = slots
                 if slots:
                     result['action'] = 'display'
                     result['screen'] = 'slots'
@@ -904,7 +1242,7 @@ class AIModel:
             end_time = entities.get('end_time')
 
             # Check if there's a pending booking context
-            pending_booking = self.sessions[session_id]['context'].get('pending_booking')
+            pending_booking = self.sessions[session_id].context.get('pending_booking')
 
             if pending_booking:
                 # Update pending booking with new information
@@ -955,7 +1293,7 @@ class AIModel:
                         'end_time': end_time,
                         'awaiting_confirmation': False
                     }
-                    self.sessions[session_id]['context']['pending_booking'] = booking_context
+                    self.sessions[session_id].context['pending_booking'] = booking_context
 
                     missing_str = ', '.join(missing_info)
                     result['response'] = f"To complete your booking, please provide the {missing_str}."
@@ -967,7 +1305,7 @@ class AIModel:
                     result['action'] = None
                     result['screen'] = None
                     # Store for confirmation
-                    self.sessions[session_id]['context']['pending_booking'] = {
+                    self.sessions[session_id].context['pending_booking'] = {
                         'slot_id': slot_id,
                         'date': date,
                         'start_time': start_time,
@@ -1001,10 +1339,15 @@ class AIModel:
         # 🚨 CRITICAL FIX: Learn from successful interactions
         self._learn_from_conversation(session_id, text, result['response'])
 
+        # 🚨 CRITICAL FIX: Generate intelligent follow-up questions
+        followup_question = self._generate_followup_question(session_id, result['intent'], result['entities'], result['response'])
+        if followup_question:
+            result['response'] += f" {followup_question}"
+
         # Add to history
-        self.sessions[session_id]['history'].append({'user': text, 'response': result['response']})
+        self.sessions[session_id].history.append({'user': text, 'response': result['response']})
         # Keep last 10
-        self.sessions[session_id]['history'] = self.sessions[session_id]['history'][-10:]
+        self.sessions[session_id].history = self.sessions[session_id].history[-10:]
 
         self.logger.info(f"Response for session {session_id}: {result}")
         return result
@@ -1076,7 +1419,7 @@ class AIModel:
 
                 # Handle 'this' station reference
                 if station_id == 'this':
-                    last_station = self.sessions.get(session_id, {}).get('context', {}).get('last_station')
+                    last_station = self.sessions[session_id].get_context('last_station')
                     if last_station:
                         # Find station by name
                         response = requests.get(f"{BACKEND_URL}/api/stations")
@@ -1108,12 +1451,74 @@ class AIModel:
                 self.logger.info(f"Successfully fetched {len(slots)} slots for station {station_id}")
                 return {'status': 'success', 'data': slots}
             elif intent['intent'] == 'view_slots_filtered':
-                # Fetch filtered slots based on city and vehicle type
+                # Fetch filtered slots based on city and vehicle type, prioritizing last_station_id context
                 entities = intent.get('entities', {})
                 city = entities.get('city')
                 vehicle_type = entities.get('vehicle_type')
 
-                # Fetch stations by city if specified
+                # Check if we have a last_station_id context from previous interaction (most reliable)
+                last_station_id = self.sessions.get(session_id, SessionContext()).get_context('last_station_id')
+                if last_station_id:
+                    try:
+                        # Fetch slots directly using station ID
+                        slots_response = requests.get(f"{BACKEND_URL}/api/slots/station/{last_station_id}")
+                        slots_response.raise_for_status()
+                        slots = slots_response.json()
+                        # Filter by vehicle_type if specified
+                        if vehicle_type:
+                            slots = [slot for slot in slots if slot.get('type', '').lower() == vehicle_type.lower()]
+                        # Filter for available slots only
+                        slots = [slot for slot in slots if slot.get('availability') == 'Free']
+                        # Add station info to slots for context
+                        try:
+                            station_response = requests.get(f"{BACKEND_URL}/api/stations/{last_station_id}")
+                            station_response.raise_for_status()
+                            station_data = station_response.json()
+                            station_name = station_data.get('stationName', 'Unknown')
+                            station_address = station_data.get('address', 'Unknown')
+                            for slot in slots:
+                                slot['stationName'] = station_name
+                                slot['stationAddress'] = station_address
+                        except Exception as e:
+                            self.logger.warning(f"Failed to fetch station details for {last_station_id}: {e}")
+                            for slot in slots:
+                                slot['stationName'] = 'Unknown'
+                                slot['stationAddress'] = 'Unknown'
+                        self.logger.info(f"Successfully fetched {len(slots)} filtered slots for station ID {last_station_id}")
+                        return {'status': 'success', 'data': slots}
+                    except Exception as e:
+                        self.logger.warning(f"Failed to fetch slots for station ID {last_station_id}: {e}")
+
+                # Fallback: Check if we have a last_station name context
+                last_station = self.sessions.get(session_id, SessionContext()).get_context('last_station')
+                if last_station:
+                    # Try to find the station by name
+                    try:
+                        response = requests.get(f"{BACKEND_URL}/api/stations")
+                        response.raise_for_status()
+                        all_stations = response.json()
+                        station = next((s for s in all_stations if s.get('stationName') and isinstance(s['stationName'], str) and s['stationName'].lower() == last_station.lower()), None)
+                        if station:
+                            station_id = station['stationId']
+                            # Fetch slots for this specific station
+                            slots_response = requests.get(f"{BACKEND_URL}/api/slots/station/{station_id}")
+                            slots_response.raise_for_status()
+                            slots = slots_response.json()
+                            # Filter by vehicle_type if specified
+                            if vehicle_type:
+                                slots = [slot for slot in slots if slot.get('type', '').lower() == vehicle_type.lower()]
+                            # Filter for available slots only
+                            slots = [slot for slot in slots if slot.get('availability') == 'Free']
+                            # Add station info to slots for context
+                            for slot in slots:
+                                slot['stationName'] = station.get('stationName', 'Unknown')
+                                slot['stationAddress'] = station.get('address', 'Unknown')
+                            self.logger.info(f"Successfully fetched {len(slots)} filtered slots for last station {last_station}")
+                            return {'status': 'success', 'data': slots}
+                    except Exception as e:
+                        self.logger.warning(f"Failed to fetch slots for last station {last_station}: {e}")
+
+                # Final fallback: Fetch stations by city if specified
                 if city:
                     response = requests.get(f"{BACKEND_URL}/api/stations/search/{city}")
                     response.raise_for_status()
@@ -1140,6 +1545,8 @@ class AIModel:
                             # Filter by vehicle_type if specified
                             if vehicle_type:
                                 slots = [slot for slot in slots if slot.get('type', '').lower() == vehicle_type.lower()]
+                            # Filter for available slots only
+                            slots = [slot for slot in slots if slot.get('availability') == 'Free']
                             # Add station info to slots for context
                             for slot in slots:
                                 slot['stationName'] = station.get('stationName', 'Unknown')
@@ -1227,15 +1634,26 @@ class AIModel:
                 # Parse date and time
                 from datetime import datetime, timedelta
 
-                # Parse date (DD-MM-YYYY or DD/MM/YYYY)
-                date_parts = date.replace('/', '-').split('-')
-                if len(date_parts) == 3:
-                    day, month, year = date_parts
-                    if len(year) == 2:
-                        year = '20' + year
-                    booking_date = f'{year}-{month.zfill(2)}-{day.zfill(2)}'
+                # Convert relative dates to actual dates
+                if date.lower() == 'today':
+                    actual_date = datetime.now()
+                elif date.lower() == 'tomorrow':
+                    actual_date = datetime.now() + timedelta(days=1)
                 else:
-                    return {'status': 'error', 'message': 'Invalid date format'}
+                    # Parse date (DD-MM-YYYY or DD/MM/YYYY)
+                    date_parts = date.replace('/', '-').split('-')
+                    if len(date_parts) == 3:
+                        day, month, year = date_parts
+                        if len(year) == 2:
+                            year = '20' + year
+                        try:
+                            actual_date = datetime(int(year), int(month), int(day))
+                        except ValueError:
+                            return {'status': 'error', 'message': 'Invalid date format'}
+                    else:
+                        return {'status': 'error', 'message': 'Invalid date format'}
+
+                booking_date = actual_date.strftime('%Y-%m-%d')
 
                 start_time_24 = self._convert_to_24_hour(start_time)
                 end_time_24 = self._convert_to_24_hour(end_time)

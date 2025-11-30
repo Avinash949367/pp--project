@@ -1,0 +1,86 @@
+FOLLOW-UP QUESTION GENERATION TEST RESULTS
+============================================================
+
+[1] Should add follow-up after showing stations
+Input: 'Show stations in Bangalore'
+Expected Intent: display_stations
+Actual Intent: display_stations
+Has Follow-up: False
+Should Have Follow-up: True
+Status: FAIL
+Response: Here are the available parking stations in bangalore: Would you like to book a slot at one of these stations?
+--------------------------------------------------
+[2] Should add follow-up after showing slots
+Input: 'Show available car slots'
+Expected Intent: view_slots
+Actual Intent: clarification_needed
+Has Follow-up: False
+Should Have Follow-up: False
+Status: PASS
+Response: Which city or parking station are you interested in?
+--------------------------------------------------
+[3] Should add follow-up after booking guidance
+Input: 'Book a slot'
+Expected Intent: book_slot
+Actual Intent: clarification_needed
+Has Follow-up: False
+Should Have Follow-up: False
+Status: PASS
+Response: When would you like to book the slot? Please provide a date.
+--------------------------------------------------
+[4] Should add follow-up after showing bookings
+Input: 'Show my bookings'
+Expected Intent: view_bookings
+Actual Intent: clarification_needed
+Has Follow-up: False
+Should Have Follow-up: False
+Status: PASS
+Response: When would you like to book the slot? Please provide a date.
+--------------------------------------------------
+[5] Should add follow-up after adding favorite
+Input: 'Add to favorites'
+Expected Intent: add_favorite
+Actual Intent: unknown
+Has Follow-up: False
+Should Have Follow-up: False
+Status: PASS
+Response: Hello! I'm your parking assistant in Bangalore. How can I help you find the perfect spot today?
+--------------------------------------------------
+[6] Should add follow-up after showing favorites
+Input: 'Show favorites'
+Expected Intent: view_favorites
+Actual Intent: display_stations
+Has Follow-up: False
+Should Have Follow-up: True
+Status: FAIL
+Response: Here are the available parking stations in bangalore: Would you like to book a slot at one of these stations?
+--------------------------------------------------
+[7] Should NOT add follow-up for greeting
+Input: 'Hello'
+Expected Intent: greet
+Actual Intent: greet
+Has Follow-up: False
+Should Have Follow-up: False
+Status: PASS
+Response: Hello! How can I assist you with parking today?
+--------------------------------------------------
+[8] Should NOT add follow-up for thanks
+Input: 'Thanks'
+Expected Intent: unknown
+Actual Intent: unknown
+Has Follow-up: False
+Should Have Follow-up: False
+Status: PASS
+Response: Hello! Your friendly parking guide is here. How can I assist you today?
+--------------------------------------------------
+[9] Should NOT add follow-up for frustration
+Input: 'Why can't you understand?'
+Expected Intent: unknown
+Actual Intent: unknown
+Has Follow-up: False
+Should Have Follow-up: False
+Status: PASS
+Response: I understand this is frustrating. Let me try a different approach to help you.
+--------------------------------------------------
+
+SUMMARY: 7 passed, 2 failed, 0 errors

@@ -31,26 +31,26 @@ class MyApp extends StatelessWidget {
     return MaterialApp(
       title: 'Park-Pro+',
       theme: ThemeData(
-        primaryColor: const Color(0xFF2979FF), // Electric Blue
-        scaffoldBackgroundColor: const Color(0xFF121212), // Dark Gray
+        primaryColor: const Color(0xFF46A49D), // Primary Teal
+        scaffoldBackgroundColor: const Color(0xFFF3FAF8), // Background Main
         colorScheme: ColorScheme.fromSwatch(
-          primarySwatch: Colors.blue,
-          brightness: Brightness.dark,
+          primarySwatch: Colors.teal,
+          brightness: Brightness.light,
         ).copyWith(
-          secondary: const Color(0xFF2979FF), // Electric Blue
+          secondary: const Color(0xFF9AD092), // Highlight Green
         ),
         appBarTheme: const AppBarTheme(
-          backgroundColor: Color(0xFF1E1E1E), // Slightly lighter dark gray
-          foregroundColor: Colors.white,
+          backgroundColor: Color(0xFFFFFFFF), // Pure White
+          foregroundColor: Color(0xFF1E373F), // Text Primary
         ),
         bottomNavigationBarTheme: const BottomNavigationBarThemeData(
-          backgroundColor: Color(0xFF1E1E1E),
-          selectedItemColor: Color(0xFF2979FF),
-          unselectedItemColor: Colors.grey,
+          backgroundColor: Color(0xFFFFFFFF), // Pure White
+          selectedItemColor: Color(0xFF46A49D), // Primary Teal
+          unselectedItemColor: Color(0xFF6B7C83), // Text Secondary
         ),
         elevatedButtonTheme: ElevatedButtonThemeData(
           style: ElevatedButton.styleFrom(
-            backgroundColor: const Color(0xFF2979FF),
+            backgroundColor: const Color(0xFF46A49D), // Primary Teal
             foregroundColor: Colors.white,
             shape: RoundedRectangleBorder(
               borderRadius: BorderRadius.circular(12),
@@ -58,16 +58,17 @@ class MyApp extends StatelessWidget {
           ),
         ),
         floatingActionButtonTheme: const FloatingActionButtonThemeData(
-          backgroundColor: Color(0xFF2979FF),
+          backgroundColor: Color(0xFF46A49D), // Primary Teal
         ),
         inputDecorationTheme: InputDecorationTheme(
           filled: true,
-          fillColor: Colors.grey[850],
+          fillColor: Color(0xFFFFFFFF), // Pure White
           border: OutlineInputBorder(
             borderRadius: BorderRadius.circular(12),
             borderSide: BorderSide.none,
           ),
-          hintStyle: const TextStyle(color: Colors.grey),
+          hintStyle:
+              const TextStyle(color: Color(0xFF6B7C83)), // Text Secondary
         ),
       ),
       debugShowCheckedModeBanner: false,
@@ -230,7 +231,7 @@ class _QuickBookPageState extends State<QuickBookPage> {
     return Scaffold(
       body: _pages[_currentIndex],
       bottomNavigationBar: BottomAppBar(
-        color: const Color(0xFF1E1E1E),
+        color: const Color(0xFFFFFFFF),
         shape: const CircularNotchedRectangle(),
         notchMargin: 6.0,
         child: SizedBox(
@@ -246,8 +247,8 @@ class _QuickBookPageState extends State<QuickBookPage> {
                     icon: Icon(
                       Icons.home,
                       color: _currentIndex == 0
-                          ? const Color(0xFF2979FF)
-                          : Colors.grey,
+                          ? const Color(0xFF46A49D)
+                          : const Color(0xFF6B7C83),
                     ),
                     onPressed: () => _onItemTapped(0),
                   ),
@@ -255,8 +256,8 @@ class _QuickBookPageState extends State<QuickBookPage> {
                     'Home',
                     style: TextStyle(
                       color: _currentIndex == 0
-                          ? const Color(0xFF2979FF)
-                          : Colors.grey,
+                          ? const Color(0xFF46A49D)
+                          : const Color(0xFF6B7C83),
                       fontSize: 10,
                     ),
                   ),
@@ -270,8 +271,8 @@ class _QuickBookPageState extends State<QuickBookPage> {
                     icon: Icon(
                       Icons.favorite_border,
                       color: _currentIndex == 1
-                          ? const Color(0xFF2979FF)
-                          : Colors.grey,
+                          ? const Color(0xFF46A49D)
+                          : const Color(0xFF6B7C83),
                     ),
                     onPressed: () => _onItemTapped(1),
                   ),
@@ -279,8 +280,8 @@ class _QuickBookPageState extends State<QuickBookPage> {
                     'Favorites',
                     style: TextStyle(
                       color: _currentIndex == 1
-                          ? const Color(0xFF2979FF)
-                          : Colors.grey,
+                          ? const Color(0xFF46A49D)
+                          : const Color(0xFF6B7C83),
                       fontSize: 12,
                     ),
                   ),
@@ -294,14 +295,14 @@ class _QuickBookPageState extends State<QuickBookPage> {
                     padding: EdgeInsets.zero,
                     icon: const Icon(
                       Icons.history,
-                      color: Colors.grey,
+                      color: Color(0xFF6B7C83),
                     ),
                     onPressed: () => _onItemTapped(3),
                   ),
                   const Text(
                     'My Bookings',
                     style: TextStyle(
-                      color: Colors.grey,
+                      color: Color(0xFF6B7C83),
                       fontSize: 12,
                     ),
                   ),
@@ -315,8 +316,8 @@ class _QuickBookPageState extends State<QuickBookPage> {
                     icon: Icon(
                       Icons.local_parking,
                       color: _currentIndex == 3
-                          ? const Color(0xFF2979FF)
-                          : Colors.grey,
+                          ? const Color(0xFF46A49D)
+                          : const Color(0xFF6B7C83),
                     ),
                     onPressed: () => _onItemTapped(4),
                   ),
@@ -324,8 +325,8 @@ class _QuickBookPageState extends State<QuickBookPage> {
                     'FASTag',
                     style: TextStyle(
                       color: _currentIndex == 3
-                          ? const Color(0xFF2979FF)
-                          : Colors.grey,
+                          ? const Color(0xFF46A49D)
+                          : const Color(0xFF6B7C83),
                       fontSize: 12,
                     ),
                   ),
@@ -887,7 +888,7 @@ class _QuickBookHomeState extends State<QuickBookHome>
             Container(
               padding: const EdgeInsets.fromLTRB(16, 40, 16, 16),
               decoration: BoxDecoration(
-                color: const Color(0xFF1E1E1E),
+                color: const Color(0xFFFFFFFF),
                 borderRadius: const BorderRadius.only(
                   bottomLeft: Radius.circular(20),
                   bottomRight: Radius.circular(20),
@@ -908,10 +909,11 @@ class _QuickBookHomeState extends State<QuickBookHome>
                       style: TextStyle(
                           fontSize: 24,
                           fontWeight: FontWeight.bold,
-                          color: Colors.white)),
+                          color: Color(0xFF1E373F))),
                   const Spacer(),
                   IconButton(
-                    icon: const Icon(Icons.notifications, color: Colors.white),
+                    icon: const Icon(Icons.notifications,
+                        color: Color(0xFF1E373F)),
                     onPressed: () {
                       Navigator.push(
                           context,
@@ -920,7 +922,7 @@ class _QuickBookHomeState extends State<QuickBookHome>
                     },
                   ),
                   IconButton(
-                    icon: const Icon(Icons.person, color: Colors.white),
+                    icon: const Icon(Icons.person, color: Color(0xFF1E373F)),
                     onPressed: () {
                       Navigator.push(context,
                           MaterialPageRoute(builder: (_) => ProfilePage()));
@@ -935,18 +937,18 @@ class _QuickBookHomeState extends State<QuickBookHome>
                 children: [
                   Expanded(
                     child: TextField(
-                      style: const TextStyle(color: Colors.white),
+                      style: const TextStyle(color: Color(0xFF1E373F)),
                       decoration: InputDecoration(
                         hintText: 'Search parking, services, features...',
                         prefixIcon:
-                            const Icon(Icons.search, color: Colors.grey),
+                            const Icon(Icons.search, color: Color(0xFF6B7C83)),
                         filled: true,
-                        fillColor: Colors.grey[850],
+                        fillColor: const Color(0xFFFFFFFF),
                         border: OutlineInputBorder(
                           borderRadius: BorderRadius.circular(12),
                           borderSide: BorderSide.none,
                         ),
-                        hintStyle: const TextStyle(color: Colors.grey),
+                        hintStyle: const TextStyle(color: Color(0xFF6B7C83)),
                       ),
                       onChanged: (value) =>
                           setState(() => _searchQuery = value),
@@ -955,7 +957,7 @@ class _QuickBookHomeState extends State<QuickBookHome>
                   const SizedBox(width: 8),
                   Container(
                     decoration: BoxDecoration(
-                      color: const Color(0xFF2979FF),
+                      color: const Color(0xFF46A49D),
                       borderRadius: BorderRadius.circular(12),
                     ),
                     child: IconButton(

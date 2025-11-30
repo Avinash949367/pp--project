@@ -2,8 +2,8 @@ COMPREHENSIVE AI ASSISTANT TEST RESULTS
 ============================================================
 Total Test Cases: 65
 Session ID: test_session
-Total Execution Time: 16.91 seconds
-Average Response Time: 0.260 seconds
+Total Execution Time: 4.00 seconds
+Average Response Time: 0.062 seconds
 ============================================================
 
 [ 1] 1.1 Personality Response Variations - Greeting 1
@@ -12,7 +12,7 @@ Status: PASS
 Intent: greet
 Response: Hello! How can I assist you with parking today?
 Action: None, Screen: None
-Response Time: 0.31s
+Response Time: 0.308s
 --------------------------------------------------
 [ 2] 1.1 Personality Response Variations - Greeting 2
 Input: 'hi'
@@ -20,7 +20,7 @@ Status: PASS
 Intent: greet
 Response: Hello! How can I assist you with parking today?
 Action: None, Screen: None
-Response Time: 0.302s
+Response Time: 0.301s
 --------------------------------------------------
 [ 3] 1.1 Personality Response Variations - Greeting 3
 Input: 'hey'
@@ -28,21 +28,21 @@ Status: PASS
 Intent: greet
 Response: Hello! How can I assist you with parking today?
 Action: None, Screen: None
-Response Time: 0.302s
+Response Time: 0.312s
 --------------------------------------------------
 [ 4] 1.3 Sentiment Detection - Negative
 Input: 'This is so frustrating!'
 Status: PASS
 Intent: unknown
-Response: Hello! I'm your parking assistant in Bangalore. How can I help you find the perfect spot today?
+Response: Greetings! I'm here to make parking in Bangalore easier for you. What would you like to know?
 Action: None, Screen: None
-Response Time: 0.302s
+Response Time: 0.303s
 --------------------------------------------------
 [ 5] 1.3 Sentiment Detection - Positive
 Input: 'Great job, thanks!'
 Status: PASS
 Intent: unknown
-Response: Hello! I'm your parking assistant in Bangalore. How can I help you find the perfect spot today?
+Response: Hi there! Ready to park smart in the city? What can I help you with?
 Action: None, Screen: None
 Response Time: 0.302s
 --------------------------------------------------
@@ -68,22 +68,22 @@ Status: PASS
 Intent: greet
 Response: Hello! How can I assist you with parking today?
 Action: None, Screen: None
-Response Time: 0.301s
+Response Time: 0.302s
 --------------------------------------------------
 [ 9] 2.1 Session History - Second message
 Input: 'Show stations in Bangalore'
 Status: PASS
 Intent: display_stations
-Response: Here are the available parking stations in bangalore:
+Response: Here are the available parking stations in bangalore - I found 1: Would you like to book a slot at one of these stations?
 Action: display, Screen: stations
 Data Items: 1
-Response Time: 0.378s
+Response Time: 0.354s
 --------------------------------------------------
 [10] 2.1 Session History - Third message
 Input: 'What can you do?'
 Status: PASS
 Intent: unknown
-Response: Hi there! Ready to park smart in the city? What can I help you with?
+Response: Hello! I'm your parking assistant in Bangalore. How can I help you find the perfect spot today? Was that helpful? Is there anything else I can assist with?
 Action: None, Screen: None
 Response Time: 0.302s
 --------------------------------------------------
@@ -99,17 +99,17 @@ Response Time: 0.001s
 Input: 'Show car slots in Bangalore'
 Status: PASS
 Intent: view_slots_filtered
-Response: No slots available matching your criteria.
+Response: No slots available matching your criteria. Is there anything else I can help you with?
 Action: display, Screen: slots
-Response Time: 0.44s
+Response Time: 0.376s
 --------------------------------------------------
 [13] 2.3 User Preference Memory - Use preferences
 Input: 'Show available slots'
 Status: PASS
-Intent: view_slots_filtered
-Response: No slots available matching your criteria.
-Action: display, Screen: slots
-Response Time: 0.483s
+Intent: clarification_needed
+Response: Which city or parking station are you interested in?
+Action: None, Screen: None
+Response Time: 0.001s
 --------------------------------------------------
 [14] 3.1 Ambiguity Detection - Vague time
 Input: 'Book for evening'
@@ -130,10 +130,10 @@ Response Time: 0.001s
 [16] 3.2 Slot Reference Resolution - Setup
 Input: 'Show slots'
 Status: PASS
-Intent: view_slots_filtered
-Response: No slots available matching your criteria. Was that helpful? Is there anything else I can assist with?
-Action: display, Screen: slots
-Response Time: 0.449s
+Intent: clarification_needed
+Response: Which city or parking station are you interested in?
+Action: None, Screen: None
+Response Time: 0.001s
 --------------------------------------------------
 [17] 3.2 Slot Reference Resolution - First reference
 Input: 'Book the first one'
@@ -154,18 +154,18 @@ Response Time: 0.001s
 [19] 3.3 Multiple Entity Extraction
 Input: 'Book car slot at MG Road station for 2 hours tomorrow at 3pm'
 Status: PASS
-Intent: clarification_needed
-Response: When would you like to book the slot? Please provide a date.
-Action: None, Screen: None
-Response Time: 0.001s
+Intent: view_slots_filtered
+Response: No slots available matching your criteria. Is there anything else I can help you with?
+Action: display, Screen: slots
+Response Time: 0.462s
 --------------------------------------------------
 [20] 4.1 Booking Flow - Show slots
 Input: 'Show available car slots'
 Status: PASS
-Intent: view_slots_filtered
-Response: No slots available matching your criteria.
-Action: display, Screen: slots
-Response Time: 0.625s
+Intent: clarification_needed
+Response: Which city or parking station are you interested in?
+Action: None, Screen: None
+Response Time: 0.001s
 --------------------------------------------------
 [21] 4.1 Booking Flow - Select slot
 Input: 'Book slot 3'
@@ -179,7 +179,7 @@ Response Time: 0.001s
 Input: 'Tomorrow 2pm to 5pm'
 Status: PASS
 Intent: unknown
-Response: Greetings! I'm here to make parking in Bangalore easier for you. What would you like to know?
+Response: Hi there! Ready to park smart in the city? What can I help you with?
 Action: None, Screen: None
 Response Time: 0.302s
 --------------------------------------------------
@@ -187,7 +187,7 @@ Response Time: 0.302s
 Input: 'razorpay'
 Status: PASS
 Intent: unknown
-Response: Greetings! I'm here to make parking in Bangalore easier for you. What would you like to know? Need any other assistance with parking today?
+Response: Greetings! I'm here to make parking in Bangalore easier for you. What would you like to know?
 Action: None, Screen: None
 Response Time: 0.302s
 --------------------------------------------------
@@ -195,203 +195,201 @@ Response Time: 0.302s
 Input: 'yes'
 Status: PASS
 Intent: unknown
-Response: Greetings! I'm here to make parking in Bangalore easier for you. What would you like to know?
+Response: Great! What type of vehicle do you have? (car, bike, scooter)
 Action: None, Screen: None
-Response Time: 0.302s
+Response Time: 0.0s
 --------------------------------------------------
 [25] 4.2 Booking Flow - Partial info
 Input: 'Book slot 5'
 Status: PASS
-Intent: clarification_needed
-Response: When would you like to book the slot? Please provide a date.
+Intent: unknown
+Response: Please specify a valid vehicle type: car, bike, or scooter.
 Action: None, Screen: None
-Response Time: 0.001s
+Response Time: 0.0s
 --------------------------------------------------
 [26] 4.2 Booking Flow - Complete info
 Input: 'Tomorrow 3pm to 6pm'
 Status: PASS
 Intent: unknown
-Response: Hello! I'm your parking assistant in Bangalore. How can I help you find the perfect spot today? Was that helpful? Is there anything else I can assist with?
+Response: Please specify a valid vehicle type: car, bike, or scooter.
 Action: None, Screen: None
-Response Time: 0.302s
+Response Time: 0.0s
 --------------------------------------------------
 [27] 4.3 Cancellation Handling
 Input: 'cancel'
 Status: PASS
 Intent: unknown
-Response: Nothing to cancel.
+Response: Please specify a valid vehicle type: car, bike, or scooter.
 Action: None, Screen: None
 Response Time: 0.0s
 --------------------------------------------------
 [28] 4.4 Error Recovery
 Input: 'Show slots at invalid station'
 Status: PASS
-Intent: view_slots_filtered
-Response: No slots available matching your criteria.
-Action: display, Screen: slots
-Response Time: 0.586s
+Intent: unknown
+Response: Please specify a valid vehicle type: car, bike, or scooter.
+Action: None, Screen: None
+Response Time: 0.0s
 --------------------------------------------------
 [29] 5.1 Intent Priority - Filtered slots
 Input: 'Show all car slots in Bangalore'
 Status: PASS
-Intent: view_slots
-Response: My apologies. Let me get this right for you now. Failed to fetch slots.
-Action: display, Screen: slots
-Response Time: 0.647s
+Intent: unknown
+Response: Got it. What date would you like to book? (e.g., tomorrow, 15-12-2024)
+Action: None, Screen: None
+Response Time: 0.0s
 --------------------------------------------------
 [30] 5.1 Intent Priority - Stations
 Input: 'Show parking stations with slots'
 Status: PASS
-Intent: view_slots_filtered
-Response: No slots available matching your criteria.
-Action: display, Screen: slots
-Response Time: 0.584s
+Intent: unknown
+Response: Please provide a valid date, like 'tomorrow' or '15-12-2024'.
+Action: None, Screen: None
+Response Time: 0.0s
 --------------------------------------------------
 [31] 5.2 Synonym Handling - Book
 Input: 'book'
 Status: PASS
-Intent: clarification_needed
-Response: When would you like to book the slot? Please provide a date.
+Intent: unknown
+Response: Please provide a valid date, like 'tomorrow' or '15-12-2024'.
 Action: None, Screen: None
-Response Time: 0.001s
+Response Time: 0.0s
 --------------------------------------------------
 [32] 5.2 Synonym Handling - Reserve
 Input: 'reserve'
 Status: PASS
-Intent: book_slot
-Response: I'll walk you through your first booking. It's quick and easy! To complete your booking, please provide the date, start time, end time.
+Intent: unknown
+Response: Please provide a valid date, like 'tomorrow' or '15-12-2024'.
 Action: None, Screen: None
-Response Time: 0.302s
+Response Time: 0.0s
 --------------------------------------------------
 [33] 5.2 Synonym Handling - Get parking
 Input: 'get parking'
 Status: PASS
-Intent: display_stations
-Response: Here are the available parking stations in bangalore:
-Action: display, Screen: stations
-Data Items: 1
-Response Time: 0.567s
+Intent: unknown
+Response: Please provide a valid date, like 'tomorrow' or '15-12-2024'.
+Action: None, Screen: None
+Response Time: 0.0s
 --------------------------------------------------
 [34] 5.2 Synonym Handling - Rent slot
 Input: 'rent slot'
 Status: PASS
-Intent: book_slot
-Response: I'll walk you through your first booking. It's quick and easy! To complete your booking, please provide the date, start time, end time.
+Intent: unknown
+Response: Please provide a valid date, like 'tomorrow' or '15-12-2024'.
 Action: None, Screen: None
-Response Time: 0.302s
+Response Time: 0.0s
 --------------------------------------------------
 [35] 5.3 Contextual Intent Boost - After vehicle mention
 Input: 'show slots'
 Status: PASS
-Intent: view_slots_filtered
-Response: No slots available matching your criteria.
-Action: display, Screen: slots
-Response Time: 0.507s
+Intent: unknown
+Response: Please provide a valid date, like 'tomorrow' or '15-12-2024'.
+Action: None, Screen: None
+Response Time: 0.0s
 --------------------------------------------------
 [36] 6.1 Time Format Recognition - 12hr
 Input: 'at 2pm'
 Status: PASS
-Intent: book_slot
-Response: I'll walk you through your first booking. It's quick and easy! To complete your booking, please provide the date, start time, end time.
+Intent: unknown
+Response: Please provide a valid date, like 'tomorrow' or '15-12-2024'.
 Action: None, Screen: None
-Response Time: 0.303s
+Response Time: 0.0s
 --------------------------------------------------
 [37] 6.1 Time Format Recognition - 24hr
 Input: '14:00'
 Status: PASS
-Intent: book_slot
-Response: I'll walk you through your first booking. It's quick and easy! To complete your booking, please provide the date, start time, end time.
+Intent: unknown
+Response: Please provide a valid date, like 'tomorrow' or '15-12-2024'.
 Action: None, Screen: None
-Response Time: 0.302s
+Response Time: 0.0s
 --------------------------------------------------
 [38] 6.1 Time Format Recognition - Full 12hr
 Input: '2:30 PM'
 Status: PASS
-Intent: book_slot
-Response: I'll walk you through your first booking. It's quick and easy! To complete your booking, please provide the date, start time, end time.
+Intent: unknown
+Response: Please provide a valid date, like 'tomorrow' or '15-12-2024'.
 Action: None, Screen: None
-Response Time: 0.302s
+Response Time: 0.0s
 --------------------------------------------------
 [39] 6.2 Date Format Recognition - DD-MM-YYYY
 Input: '15-12-2024'
 Status: PASS
-Intent: book_slot
-Response: I'll walk you through your first booking. It's quick and easy! To complete your booking, please provide the date, start time, end time.
+Intent: unknown
+Response: Perfect. What time would you like to park? Please provide start and end time (e.g., from 2pm to 5pm).
 Action: None, Screen: None
-Response Time: 0.302s
+Response Time: 0.0s
 --------------------------------------------------
 [40] 6.2 Date Format Recognition - DD/MM/YY
 Input: '15/12/24'
 Status: PASS
-Intent: book_slot
-Response: I'll walk you through your first booking. It's quick and easy! To complete your booking, please provide the date, start time, end time.
+Intent: unknown
+Response: Please provide both start and end times, like 'from 2pm to 5pm'.
 Action: None, Screen: None
-Response Time: 0.302s
+Response Time: 0.0s
 --------------------------------------------------
 [41] 6.2 Date Format Recognition - Relative
 Input: 'tomorrow'
 Status: PASS
-Intent: book_slot
-Response: I'll walk you through your first booking. It's quick and easy! To complete your booking, please provide the date, start time, end time.
+Intent: unknown
+Response: Please provide both start and end times, like 'from 2pm to 5pm'.
 Action: None, Screen: None
-Response Time: 0.302s
+Response Time: 0.0s
 --------------------------------------------------
 [42] 6.3 Vehicle Type Detection - Bike
 Input: 'bike slots'
 Status: PASS
-Intent: view_slots_filtered
-Response: Here are the available slots for bike: I'm here if you have any other parking questions!
-Action: display, Screen: slots
-Data Items: 2
-Response Time: 0.452s
+Intent: unknown
+Response: Please provide both start and end times, like 'from 2pm to 5pm'.
+Action: None, Screen: None
+Response Time: 0.0s
 --------------------------------------------------
 [43] 6.3 Vehicle Type Detection - Car
 Input: 'parking for car'
 Status: PASS
-Intent: book_slot
-Response: I'll walk you through your first booking. It's quick and easy! To complete your booking, please provide the date, start time, end time.
+Intent: unknown
+Response: Please provide both start and end times, like 'from 2pm to 5pm'.
 Action: None, Screen: None
-Response Time: 0.302s
+Response Time: 0.0s
 --------------------------------------------------
 [44] 6.3 Vehicle Type Detection - Motorcycle
 Input: 'motorcycle parking'
 Status: PASS
-Intent: book_slot
-Response: I'll walk you through your first booking. It's quick and easy! To complete your booking, please provide the date, start time, end time.
+Intent: unknown
+Response: Please provide both start and end times, like 'from 2pm to 5pm'.
 Action: None, Screen: None
-Response Time: 0.301s
+Response Time: 0.0s
 --------------------------------------------------
 [45] 6.4 City Correction - Misspelled
 Input: 'in banglore'
 Status: PASS
-Intent: book_slot
-Response: I'll walk you through your first booking. It's quick and easy! To complete your booking, please provide the date, start time, end time.
+Intent: unknown
+Response: Please provide both start and end times, like 'from 2pm to 5pm'.
 Action: None, Screen: None
-Response Time: 0.302s
+Response Time: 0.0s
 --------------------------------------------------
 [46] 6.4 City Correction - Correct
 Input: 'in Bangalore'
 Status: PASS
-Intent: book_slot
-Response: I'll walk you through your first booking. It's quick and easy! To complete your booking, please provide the date, start time, end time.
+Intent: unknown
+Response: Please provide both start and end times, like 'from 2pm to 5pm'.
 Action: None, Screen: None
-Response Time: 0.302s
+Response Time: 0.0s
 --------------------------------------------------
 [47] 7.1 Proactive Suggestions
 Input: 'unknown query'
 Status: PASS
-Intent: book_slot
-Response: I'll walk you through your first booking. It's quick and easy! To complete your booking, please provide the date, start time, end time.
+Intent: unknown
+Response: Please provide both start and end times, like 'from 2pm to 5pm'.
 Action: None, Screen: None
-Response Time: 0.302s
+Response Time: 0.0s
 --------------------------------------------------
 [48] 7.2 Missing Information Guidance
 Input: 'I want to book a slot'
 Status: PASS
-Intent: clarification_needed
-Response: When would you like to book the slot? Please provide a date.
+Intent: unknown
+Response: Please provide both start and end times, like 'from 2pm to 5pm'.
 Action: None, Screen: None
-Response Time: 0.001s
+Response Time: 0.0s
 --------------------------------------------------
 [49] 8.1 Frustration Indicators
 Input: 'Why can't you understand?'
@@ -412,125 +410,122 @@ Response Time: 0.0s
 [51] 9.1 Payment Method Selection - Razorpay
 Input: 'razorpay'
 Status: PASS
-Intent: book_slot
-Response: I'll walk you through your first booking. It's quick and easy! To complete your booking, please provide the date, start time, end time.
+Intent: unknown
+Response: Please provide both start and end times, like 'from 2pm to 5pm'.
 Action: None, Screen: None
-Response Time: 0.302s
+Response Time: 0.0s
 --------------------------------------------------
 [52] 9.1 Payment Method Selection - Coupon
 Input: 'coupon BOOKFREE'
 Status: PASS
-Intent: clarification_needed
-Response: When would you like to book the slot? Please provide a date.
+Intent: unknown
+Response: Please provide both start and end times, like 'from 2pm to 5pm'.
 Action: None, Screen: None
-Response Time: 0.001s
+Response Time: 0.0s
 --------------------------------------------------
 [53] 9.2 Booking Confirmation
 Input: 'yes'
 Status: PASS
-Intent: book_slot
-Response: I'll walk you through your first booking. It's quick and easy! To complete your booking, please provide the date, start time, end time.
+Intent: unknown
+Response: Please provide both start and end times, like 'from 2pm to 5pm'.
 Action: None, Screen: None
-Response Time: 0.304s
+Response Time: 0.0s
 --------------------------------------------------
 [54] 9.3 Booking Cancellation
 Input: 'no'
 Status: PASS
 Intent: unknown
-Response: Booking cancelled. Let me know if you need help with anything else.
+Response: Please provide both start and end times, like 'from 2pm to 5pm'.
 Action: None, Screen: None
-Response Time: 0.001s
+Response Time: 0.0s
 --------------------------------------------------
 [55] 10.1 Station Search
 Input: 'Show stations in Bangalore'
 Status: PASS
-Intent: display_stations
-Response: Here are the available parking stations in bangalore:
-Action: display, Screen: stations
-Data Items: 1
-Response Time: 0.408s
+Intent: unknown
+Response: Please provide both start and end times, like 'from 2pm to 5pm'.
+Action: None, Screen: None
+Response Time: 0.0s
 --------------------------------------------------
 [56] 10.2 Slot Availability
 Input: 'Show available car slots'
 Status: PASS
-Intent: view_slots_filtered
-Response: No slots available matching your criteria.
-Action: display, Screen: slots
-Response Time: 0.415s
+Intent: unknown
+Response: Please provide both start and end times, like 'from 2pm to 5pm'.
+Action: None, Screen: None
+Response Time: 0.0s
 --------------------------------------------------
 [57] 10.3 User Bookings
 Input: 'Show my bookings'
 Status: PASS
-Intent: clarification_needed
-Response: When would you like to book the slot? Please provide a date.
+Intent: unknown
+Response: Please provide both start and end times, like 'from 2pm to 5pm'.
 Action: None, Screen: None
-Response Time: 0.001s
+Response Time: 0.0s
 --------------------------------------------------
 [58] 11.1 Empty Input
 Input: ''
 Status: PASS
 Intent: unknown
-Response: Hello! I'm your parking assistant in Bangalore. How can I help you find the perfect spot today? I'm here if you have any other parking questions!
+Response: Please provide both start and end times, like 'from 2pm to 5pm'.
 Action: None, Screen: None
-Response Time: 0.302s
+Response Time: 0.0s
 --------------------------------------------------
 [59] 11.1 Empty Input - Spaces
 Input: '   '
 Status: PASS
 Intent: unknown
-Response: Greetings! I'm here to make parking in Bangalore easier for you. What would you like to know?
+Response: Please provide both start and end times, like 'from 2pm to 5pm'.
 Action: None, Screen: None
-Response Time: 0.301s
+Response Time: 0.0s
 --------------------------------------------------
 [60] 11.3 Special Characters
 Input: 'Book slot #5 @ 2pm!'
 Status: PASS
-Intent: clarification_needed
-Response: When would you like to book the slot? Please provide a date.
+Intent: unknown
+Response: Please provide both start and end times, like 'from 2pm to 5pm'.
 Action: None, Screen: None
-Response Time: 0.001s
+Response Time: 0.0s
 --------------------------------------------------
 [61] 12.1 Time-based Greetings
 Input: 'hello'
 Status: PASS
-Intent: greet
-Response: Hello! How can I assist you with parking today?
+Intent: unknown
+Response: Please provide both start and end times, like 'from 2pm to 5pm'.
 Action: None, Screen: None
-Response Time: 0.301s
+Response Time: 0.0s
 --------------------------------------------------
 [62] 13.1 Successful Pattern Recognition
 Input: 'thanks'
 Status: PASS
 Intent: unknown
-Response: Hello! Your friendly parking guide is here. How can I assist you today? I'm here if you have any other parking questions!
+Response: Please provide both start and end times, like 'from 2pm to 5pm'.
 Action: None, Screen: None
-Response Time: 0.302s
+Response Time: 0.0s
 --------------------------------------------------
 [63] 14.1 Session Isolation - User A
 Input: 'Show Bangalore stations'
 Status: PASS
-Intent: display_stations
-Response: Here are the available parking stations in bangalore:
-Action: display, Screen: stations
-Data Items: 1
-Response Time: 0.345s
+Intent: unknown
+Response: Please provide both start and end times, like 'from 2pm to 5pm'.
+Action: None, Screen: None
+Response Time: 0.0s
 --------------------------------------------------
 [64] 14.1 Session Isolation - User B
 Input: 'Show this station'
 Status: PASS
-Intent: display_stations
-Response: Here are the available parking stations in bangalore:
-Action: display, Screen: stations
-Data Items: 1
-Response Time: 0.358s
+Intent: unknown
+Response: Please provide both start and end times, like 'from 2pm to 5pm'.
+Action: None, Screen: None
+Response Time: 0.0s
 --------------------------------------------------
 [65] 15.1 Response Time - Basic query
 Input: 'show slots'
 Status: PASS
-Intent: view_slots_filtered
-Response: No slots available matching your criteria.
-Action: display, Screen: slots
-Response Time: 0.498s
+Intent: unknown
+Response: Please provide both start and end times, like 'from 2pm to 5pm'.
+Action: None, Screen: None
+Response Time: 0.0s
 --------------------------------------------------
 
 SUMMARY: 65 passed, 0 failed

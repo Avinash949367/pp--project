@@ -113,7 +113,7 @@ CITY_CORRECTIONS = {
 ENTITY_RULES = {
     'city': r'in (\w+)',
     'time': r'at (\d{1,2}(?::\d{2})? ?(?:am|pm)?)',
-    'date': r'(?:date|on)[:\s]*(\d{1,2}[-/]\d{1,2}[-/]\d{4})',
+    'date': r'(?:date|on)?[:\s]*(tomorrow|today|\d{1,2}\s*[-/]\s*\d{1,2}\s*[-/]\s*\d{2,4})',
     'duration': r'for (\d+) hours?',
     'booking_id': r'booking (\d+)',
     'amount': r'amount (\d+)',
@@ -121,8 +121,9 @@ ENTITY_RULES = {
     'station': r'(\w+) station\b',
     'vehicle_type': r'(bike|car|motorcycle|scooter|truck|van|vehicle) slots?',
     'slot_id': r'book (slot \d+|sl\d+|\d+)',
-    'start_time': r'(?:start time|from)[:\s]*(\d{1,2}:\d{2} ?(?:am|pm)?)',
-    'end_time': r'(?:end time|to)[:\s]*(\d{1,2}:\d{2} ?(?:am|pm)?)'
+    'start_time': r'(?:start time|from)[:\s]*(\d{1,2}(?::\d{2})? ?(?:am|pm)?)',
+    'end_time': r'(?:end time|to)[:\s]*(\d{1,2}(?::\d{2})? ?(?:am|pm)?)',
+    'time_range': r'(?:from\s+)?(\d{1,2}(?::\d{2})? ?(?:am|pm)?)\s*to\s*(\d{1,2}(?::\d{2})? ?(?:am|pm)?)'
 }
 
 RESPONSE_TEMPLATES = {
