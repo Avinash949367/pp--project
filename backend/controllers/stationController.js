@@ -237,6 +237,27 @@ exports.saveStationSettings = async (req, res) => {
   }
 };
 
+// Get station for authenticated station admin
+exports.getMyStation = async (req, res) => {
+  try {
+    // Find StoreAdminCredentials by _id (req.user.id is StoreAdminCredentials id)
+    const admin = await StoreAdminCredentials.findById(req.user.id);
+    if (!admin) {
+      return res.status(404).json({ message: 'Admin not found' });
+    }
+
+    // Find the station using the stationId from admin credentials
+    const station = await Station.findById(admin.stationId);
+    if (!station) {
+      return res.status(404).json({ message: 'Station not found' });
+    }
+
+    res.json(station);
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
+};
+
 // Get station admin profile
 exports.getStationAdminProfile = async (req, res) => {
   try {
