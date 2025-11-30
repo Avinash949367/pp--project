@@ -1026,3 +1026,360 @@ exports.cancelBooking = async (req, res) => {
         res.status(500).json({ message: error.message });
     }
 };
+
+// Get earnings data for station admin
+exports.getEarningsData = async (req, res) => {
+    try {
+        const { stationId } = req.params;
+        console.log('getEarningsData called with stationId:', stationId);
+
+        if (!stationId) {
+            return res.status(400).json({ message: 'Station ID is required' });
+        }
+
+        const SlotBooking = require('../models/SlotBooking');
+        const Station = require('../models/Station');
+
+        // Find the station by stationId string field
+        const station = await Station.findOne({ stationId: stationId });
+        if (!station) {
+            return res.status(404).json({ message: 'Station not found' });
+        }
+        const stationObjectId = station._id;
+        console.log('Station found, ObjectId:', stationObjectId);
+
+        const now = new Date();
+        const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+        const weekAgo = new Date(today.getTime() - 7 * 24 * 60 * 60 * 1000);
+        const monthAgo = new Date(today.getTime() - 30 * 24 * 60 * 60 * 1000);
+
+        // Today's earnings
+        const todayEarningsResult = await SlotBooking.aggregate([
+            {
+                $match: {
+                    stationId: stationObjectId,
+                    status: { $in: ['active', 'confirmed'] },
+                    bookingStartTime: { $gte: today }
+                }
+            },
+            {
+                $group: {
+                    _id: null,
+                    total: { $sum: '$amountPaid' }
+                }
+            }
+        ]);
+        const todayEarnings = todayEarningsResult.length > 0 ? todayEarningsResult[0].total : 0;
+
+        // Weekly earnings
+        const weeklyEarningsResult = await SlotBooking.aggregate([
+            {
+                $match: {
+                    stationId: stationObjectId,
+                    status: { $in: ['active', 'confirmed'] },
+                    bookingStartTime: { $gte: weekAgo }
+                }
+            },
+            {
+                $group: {
+                    _id: null,
+                    total: { $sum: '$amountPaid' }
+                }
+            }
+        ]);
+        const weeklyEarnings = weeklyEarningsResult.length > 0 ? weeklyEarningsResult[0].total : 0;
+
+        // Monthly earnings
+        const monthlyEarningsResult = await SlotBooking.aggregate([
+            {
+                $match: {
+                    stationId: stationObjectId,
+                    status: { $in: ['active', 'confirmed'] },
+                    bookingStartTime: { $gte: monthAgo }
+                }
+            },
+            {
+                $group: {
+                    _id: null,
+                    total: { $sum: '$amountPaid' }
+                }
+            }
+        ]);
+        const monthlyEarnings = monthlyEarningsResult.length > 0 ? monthlyEarningsResult[0].total : 0;
+
+        // Total earnings
+        const totalEarningsResult = await SlotBooking.aggregate([
+            {
+                $match: {
+                    stationId: stationObjectId,
+                    status: { $in: ['active', 'confirmed'] }
+                }
+            },
+            {
+                $group: {
+                    _id: null,
+                    total: { $sum: '$amountPaid' }
+                }
+            }
+        ]);
+        const totalEarnings = totalEarningsResult.length > 0 ? totalEarningsResult[0].total : 0;
+
+        // Total bookings
+        const totalBookings = await SlotBooking.countDocuments({
+            stationId: stationObjectId,
+            status: { $in: ['active', 'confirmed'] }
+        });
+
+        // Average slot usage time (in hours)
+        const avgUsageResult = await SlotBooking.aggregate([
+            {
+                $match: {
+                    stationId: stationObjectId,
+                    status: { $in: ['active', 'confirmed'] }
+                }
+            },
+            {
+                $project: {
+                    duration: {
+                        $divide: [
+                            { $subtract: ['$bookingEndTime', '$bookingStartTime'] },
+                            1000 * 60 * 60 // Convert to hours
+                        ]
+                    }
+                }
+            },
+            {
+                $group: {
+                    _id: null,
+                    avgDuration: { $avg: '$duration' }
+                }
+            }
+        ]);
+        const avgSlotUsageTime = avgUsageResult.length > 0 ? Math.round(avgUsageResult[0].avgDuration * 10) / 10 : 0;
+
+        // Earnings trend for last 30 days
+        const thirtyDaysAgo = new Date(today.getTime() - 30 * 24 * 60 * 60 * 1000);
+        const earningsTrend = await SlotBooking.aggregate([
+            {
+                $match: {
+                    stationId: stationObjectId,
+                    status: { $in: ['active', 'confirmed'] },
+                    bookingStartTime: { $gte: thirtyDaysAgo }
+                }
+            },
+            {
+                $group: {
+                    _id: {
+                        $dateToString: { format: '%Y-%m-%d', date: '$bookingStartTime' }
+                    },
+                    earnings: { $sum: '$amountPaid' }
+                }
+            },
+            {
+                $sort: { '_id': 1 }
+            }
+        ]);
+
+        // Peak hours analysis (bookings per hour)
+        const peakHoursData = await SlotBooking.aggregate([
+            {
+                $match: {
+                    stationId: stationObjectId,
+                    status: { $in: ['active', 'confirmed'] },
+                    bookingStartTime: { $gte: weekAgo }
+                }
+            },
+            {
+                $group: {
+                    _id: { $hour: '$bookingStartTime' },
+                    bookings: { $sum: 1 }
+                }
+            },
+            {
+                $sort: { '_id': 1 }
+            }
+        ]);
+
+        // Occupancy rate (simplified - total booked slots vs total slots)
+        const totalSlots = await Slot.countDocuments({ stationId: stationObjectId.toString() });
+        const occupiedSlots = await SlotBooking.countDocuments({
+            stationId: stationObjectId,
+            status: { $in: ['active', 'confirmed'] },
+            bookingStartTime: { $lte: now },
+            bookingEndTime: { $gte: now }
+        });
+        const occupancyRate = totalSlots > 0 ? Math.round((occupiedSlots / totalSlots) * 100) : 0;
+
+        res.status(200).json({
+            todayEarnings,
+            weeklyEarnings,
+            monthlyEarnings,
+            totalEarnings,
+            totalBookings,
+            avgSlotUsageTime,
+            earningsTrend: earningsTrend.map(item => ({ date: item._id, earnings: item.earnings })),
+            peakHoursData: peakHoursData.map(item => ({ hour: item._id, bookings: item.bookings })),
+            occupancyRate
+        });
+    } catch (error) {
+        console.error('Error in getEarningsData:', error);
+        res.status(500).json({ message: error.message });
+    }
+};
+
+// Get recent transactions for station admin
+exports.getRecentTransactions = async (req, res) => {
+    try {
+        const { stationId } = req.params;
+        const { limit = 10 } = req.query;
+        console.log('getRecentTransactions called with stationId:', stationId);
+
+        if (!stationId) {
+            return res.status(400).json({ message: 'Station ID is required' });
+        }
+
+        const SlotBooking = require('../models/SlotBooking');
+        const Station = require('../models/Station');
+
+        // Find the station by stationId string field
+        const station = await Station.findOne({ stationId: stationId });
+        if (!station) {
+            return res.status(404).json({ message: 'Station not found' });
+        }
+        const stationObjectId = station._id;
+        console.log('Station found, ObjectId:', stationObjectId);
+
+        // Get recent transactions with populated data
+        const recentTransactions = await SlotBooking.find({
+            stationId: stationObjectId,
+            status: { $in: ['active', 'confirmed'] }
+        })
+        .populate('userId', 'name email')
+        .populate('vehicleId', 'number')
+        .populate('slotId', 'slotId')
+        .sort({ createdAt: -1 })
+        .limit(parseInt(limit));
+
+        console.log('Recent transactions found:', recentTransactions.length);
+
+        // Format the response
+        const formattedTransactions = recentTransactions.map(booking => ({
+            bookingId: booking._id.toString().slice(-6).toUpperCase(), // Last 6 chars as ID
+            date: booking.bookingStartTime.toLocaleDateString('en-IN'),
+            vehicleNo: booking.vehicleId ? booking.vehicleId.number : 'Unknown',
+            timeIn: booking.bookingStartTime.toLocaleTimeString('en-IN', {
+                hour: '2-digit',
+                minute: '2-digit',
+                hour12: true
+            }),
+            timeOut: booking.bookingEndTime.toLocaleTimeString('en-IN', {
+                hour: '2-digit',
+                minute: '2-digit',
+                hour12: true
+            }),
+            amount: booking.amountPaid
+        }));
+
+        res.status(200).json(formattedTransactions);
+    } catch (error) {
+        console.error('Error in getRecentTransactions:', error);
+        res.status(500).json({ message: error.message });
+    }
+};
+
+// Get booking data for station admin table
+exports.getBookingsData = async (req, res) => {
+    try {
+        const { stationId } = req.params;
+        const { page = 1, limit = 10, status, paymentStatus, startDate, endDate } = req.query;
+        console.log('getBookingsData called with stationId:', stationId);
+
+        if (!stationId) {
+            return res.status(400).json({ message: 'Station ID is required' });
+        }
+
+        const SlotBooking = require('../models/SlotBooking');
+        const Station = require('../models/Station');
+
+        // Find the station by stationId string field
+        const station = await Station.findOne({ stationId: stationId });
+        if (!station) {
+            return res.status(404).json({ message: 'Station not found' });
+        }
+        const stationObjectId = station._id;
+        console.log('Station found, ObjectId:', stationObjectId);
+
+        // Build query
+        const query = {
+            stationId: stationObjectId
+        };
+
+        if (status) {
+            query.status = status;
+        }
+
+        if (paymentStatus) {
+            query.paymentStatus = paymentStatus;
+        }
+
+        if (startDate && endDate) {
+            query.bookingStartTime = {
+                $gte: new Date(startDate),
+                $lte: new Date(endDate)
+            };
+        }
+
+        // Get total count for pagination
+        const totalCount = await SlotBooking.countDocuments(query);
+
+        // Get bookings with pagination
+        const bookings = await SlotBooking.find(query)
+            .populate('userId', 'name email')
+            .populate('vehicleId', 'number')
+            .populate('slotId', 'slotId type')
+            .sort({ bookingStartTime: -1 })
+            .skip((parseInt(page) - 1) * parseInt(limit))
+            .limit(parseInt(limit));
+
+        console.log('Bookings found:', bookings.length);
+
+        // Format the response
+        const formattedBookings = bookings.map(booking => ({
+            bookingId: `#${booking._id.toString().slice(-6).toUpperCase()}`,
+            customer: {
+                name: booking.userId ? booking.userId.name : 'Unknown',
+                email: booking.userId ? booking.userId.email : 'Unknown'
+            },
+            slot: booking.slotId ? booking.slotId.slotId : 'Unknown',
+            dateTime: {
+                date: booking.bookingStartTime.toLocaleDateString('en-IN'),
+                time: `${booking.bookingStartTime.toLocaleTimeString('en-IN', {
+                    hour: '2-digit',
+                    minute: '2-digit',
+                    hour12: true
+                })} - ${booking.bookingEndTime.toLocaleTimeString('en-IN', {
+                    hour: '2-digit',
+                    minute: '2-digit',
+                    hour12: true
+                })}`
+            },
+            duration: `${Math.ceil((booking.bookingEndTime - booking.bookingStartTime) / (1000 * 60 * 60))} hours`,
+            amount: booking.amountPaid,
+            status: booking.status,
+            payment: booking.paymentStatus
+        }));
+
+        res.status(200).json({
+            bookings: formattedBookings,
+            pagination: {
+                currentPage: parseInt(page),
+                totalPages: Math.ceil(totalCount / parseInt(limit)),
+                totalCount,
+                limit: parseInt(limit)
+            }
+        });
+    } catch (error) {
+        console.error('Error in getBookingsData:', error);
+        res.status(500).json({ message: error.message });
+    }
+};

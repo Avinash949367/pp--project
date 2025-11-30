@@ -5,6 +5,7 @@ const stationController = require('../controllers/stationController');
 
 // Station routes
 router.get('/stations', stationController.getAllStations);
+router.get('/stations/me', passport.authenticate('jwt', { session: false }), stationController.getMyStation);
 router.get('/stations/:id', stationController.getStationById);
 router.get('/stations/search/:city', stationController.searchStationsByCity);
 router.get('/stations/status/:status', stationController.getStationsByStatus);

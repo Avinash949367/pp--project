@@ -288,23 +288,23 @@
       <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 gap-4 mb-6">
         <div class="bg-white shadow-md rounded-xl p-4 hover:shadow-lg">
           <p class="text-sm text-gray-500">💸 Today’s Earnings</p>
-          <h3 class="text-lg font-bold">₹ 3,200</h3>
+          <h3 class="text-lg font-bold" id="today-earnings">₹ 0</h3>
         </div>
         <div class="bg-white shadow-md rounded-xl p-4 hover:shadow-lg">
           <p class="text-sm text-gray-500">📅 Weekly Earnings</p>
-          <h3 class="text-lg font-bold">₹ 18,700</h3>
+          <h3 class="text-lg font-bold" id="weekly-earnings">₹ 0</h3>
         </div>
         <div class="bg-white shadow-md rounded-xl p-4 hover:shadow-lg">
           <p class="text-sm text-gray-500">📊 Monthly Earnings</p>
-          <h3 class="text-lg font-bold">₹ 78,250</h3>
+          <h3 class="text-lg font-bold" id="monthly-earnings">₹ 0</h3>
         </div>
         <div class="bg-white shadow-md rounded-xl p-4 hover:shadow-lg">
           <p class="text-sm text-gray-500">🚗 Total Bookings</p>
-          <h3 class="text-lg font-bold">1,120</h3>
+          <h3 class="text-lg font-bold" id="total-bookings">0</h3>
         </div>
         <div class="bg-white shadow-md rounded-xl p-4 hover:shadow-lg">
           <p class="text-sm text-gray-500">🕒 Avg. Slot Usage Time</p>
-          <h3 class="text-lg font-bold">2.5 hrs</h3>
+          <h3 class="text-lg font-bold" id="avg-usage-time">0 hrs</h3>
         </div>
       </div>
 
@@ -330,7 +330,7 @@
       <!-- Recent Transactions Table -->
       <div class="bg-white p-4 rounded-xl shadow mb-6 overflow-auto">
         <h2 class="text-lg font-bold mb-4">🧾 Recent Transactions</h2>
-        <table class="w-full min-w-[600px] text-left">
+        <table id="recent-transactions-table" class="w-full min-w-[600px] text-left">
           <thead class="bg-gray-100 sticky top-0">
             <tr>
               <th class="p-2">Booking ID</th>
@@ -342,22 +342,7 @@
             </tr>
           </thead>
           <tbody>
-            <tr class="border-t">
-              <td class="p-2">BK1234</td>
-              <td class="p-2">27-Jul-25</td>
-              <td class="p-2">KA03MK1111</td>
-              <td class="p-2">08:00AM</td>
-              <td class="p-2">10:15AM</td>
-              <td class="p-2">₹100</td>
-            </tr>
-            <tr class="border-t">
-              <td class="p-2">BK1235</td>
-              <td class="p-2">27-Jul-25</td>
-              <td class="p-2">KA01CC3333</td>
-              <td class="p-2">09:00AM</td>
-              <td class="p-2">11:00AM</td>
-              <td class="p-2">₹120</td>
-            </tr>
+            <!-- Transactions will be loaded dynamically -->
           </tbody>
         </table>
       </div>
@@ -379,50 +364,210 @@
   </div>
 
   <script>
-    const revenueChart = new Chart(document.getElementById('revenueChart'), {
-      type: 'line',
-      data: {
-        labels: Array.from({ length: 30 }, (_, i) => `Day ${i + 1}`),
-        datasets: [{
-          label: 'Earnings ₹',
-          data: Array.from({ length: 30 }, () => Math.floor(Math.random() * 5000)),
-          borderColor: '#4F46E5',
-          backgroundColor: 'rgba(79, 70, 229, 0.1)',
-          fill: true
-        }]
-      },
-      options: {
-        responsive: true,
-        plugins: {
-          legend: { display: false }
+    let revenueChart, peakHourChart, occupancyChart;
+
+    // Function to get station ID from localStorage
+    function getStationId() {
+        const user = JSON.parse(localStorage.getItem('user'));
+        return user ? user.stationId : null;
+    }
+
+    // Function to load earnings data
+    async function loadEarningsData() {
+        const stationId = getStationId();
+        if (!stationId) {
+            console.error('No station ID found');
+            return;
         }
-      }
-    });
 
-    const peakHourChart = new Chart(document.getElementById('peakHourChart'), {
-      type: 'bar',
-      data: {
-        labels: ['6 AM', '9 AM', '12 PM', '3 PM', '6 PM', '9 PM'],
-        datasets: [{
-          label: 'Bookings',
-          data: [50, 100, 200, 80, 60, 30],
-          backgroundColor: '#F97316'
-        }]
-      }
-    });
+        try {
+            const response = await fetch(`http://localhost:5000/api/slots/earnings/${stationId}`, {
+                headers: {
+                    'Authorization': `Bearer ${localStorage.getItem('token')}`
+                }
+            });
 
-    const occupancyChart = new Chart(document.getElementById('occupancyChart'), {
-      type: 'doughnut',
-      data: {
-        labels: ['Occupied', 'Available'],
-        datasets: [{
-          data: [82, 18],
-          backgroundColor: ['#10B981', '#E5E7EB']
-        }]
-      },
-      options: {
-        cutout: '70%'
-      }
+            if (!response.ok) {
+                throw new Error('Failed to fetch earnings data');
+            }
+
+            const data = await response.json();
+            updateSummaryCards(data);
+            updateCharts(data);
+        } catch (error) {
+            console.error('Error loading earnings data:', error);
+        }
+    }
+
+    // Function to load recent transactions
+    async function loadRecentTransactions() {
+        const stationId = getStationId();
+        if (!stationId) {
+            console.error('No station ID found');
+            return;
+        }
+
+        try {
+            const response = await fetch(`http://localhost:5000/api/slots/transactions/${stationId}`, {
+                headers: {
+                    'Authorization': `Bearer ${localStorage.getItem('token')}`
+                }
+            });
+
+            if (!response.ok) {
+                throw new Error('Failed to fetch transactions data');
+            }
+
+            const transactions = await response.json();
+            updateTransactionsTable(transactions);
+        } catch (error) {
+            console.error('Error loading transactions data:', error);
+        }
+    }
+
+    // Function to update summary cards
+    function updateSummaryCards(data) {
+        document.getElementById('today-earnings').textContent = `₹ ${data.todayEarnings}`;
+        document.getElementById('weekly-earnings').textContent = `₹ ${data.weeklyEarnings}`;
+        document.getElementById('monthly-earnings').textContent = `₹ ${data.monthlyEarnings}`;
+        document.getElementById('total-bookings').textContent = data.totalBookings;
+        document.getElementById('avg-usage-time').textContent = `${data.avgSlotUsageTime} hrs`;
+    }
+
+    // Function to update charts
+    function updateCharts(data) {
+        // Update revenue chart
+        if (revenueChart) {
+            revenueChart.destroy();
+        }
+        const revenueCtx = document.getElementById('revenueChart').getContext('2d');
+        revenueChart = new Chart(revenueCtx, {
+            type: 'line',
+            data: {
+                labels: data.earningsTrend.map(item => {
+                    const date = new Date(item.date);
+                    return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+                }),
+                datasets: [{
+                    label: 'Daily Earnings',
+                    data: data.earningsTrend.map(item => item.earnings),
+                    borderColor: '#46949d',
+                    backgroundColor: 'rgba(70, 148, 157, 0.1)',
+                    tension: 0.4,
+                    fill: true
+                }]
+            },
+            options: {
+                responsive: true,
+                plugins: {
+                    legend: {
+                        position: 'top',
+                    },
+                    title: {
+                        display: true,
+                        text: '30-Day Earnings Trend'
+                    }
+                }
+            }
+        });
+
+        // Update peak hours chart
+        if (peakHourChart) {
+            peakHourChart.destroy();
+        }
+        const peakHoursCtx = document.getElementById('peakHourChart').getContext('2d');
+        peakHourChart = new Chart(peakHoursCtx, {
+            type: 'bar',
+            data: {
+                labels: data.peakHoursData.map(item => `${item.hour}:00`),
+                datasets: [{
+                    label: 'Bookings',
+                    data: data.peakHoursData.map(item => item.bookings),
+                    backgroundColor: '#46949d',
+                    borderColor: '#46949d',
+                    borderWidth: 1
+                }]
+            },
+            options: {
+                responsive: true,
+                plugins: {
+                    legend: {
+                        position: 'top',
+                    },
+                    title: {
+                        display: true,
+                        text: 'Peak Hours Analysis (Last 7 Days)'
+                    }
+                },
+                scales: {
+                    y: {
+                        beginAtZero: true
+                    }
+                }
+            }
+        });
+
+        // Update occupancy chart
+        if (occupancyChart) {
+            occupancyChart.destroy();
+        }
+        const occupancyCtx = document.getElementById('occupancyChart').getContext('2d');
+        occupancyChart = new Chart(occupancyCtx, {
+            type: 'doughnut',
+            data: {
+                labels: ['Occupied', 'Available'],
+                datasets: [{
+                    data: [data.occupancyRate, 100 - data.occupancyRate],
+                    backgroundColor: ['#46949d', '#e0f2f1'],
+                    borderWidth: 1
+                }]
+            },
+            options: {
+                responsive: true,
+                plugins: {
+                    legend: {
+                        position: 'top',
+                    },
+                    title: {
+                        display: true,
+                        text: `Current Occupancy Rate: ${data.occupancyRate}%`
+                    }
+                }
+            }
+        });
+    }
+
+    // Function to update transactions table
+    function updateTransactionsTable(transactions) {
+        const tbody = document.querySelector('#recent-transactions-table tbody');
+
+        if (!transactions || transactions.length === 0) {
+            tbody.innerHTML = '<tr><td colspan="6" class="p-2 text-center text-gray-500">No transactions found</td></tr>';
+            return;
+        }
+
+        tbody.innerHTML = transactions.map(transaction => `
+            <tr class="border-t">
+                <td class="p-2">${transaction.bookingId}</td>
+                <td class="p-2">${transaction.date}</td>
+                <td class="p-2">${transaction.vehicleNo}</td>
+                <td class="p-2">${transaction.timeIn}</td>
+                <td class="p-2">${transaction.timeOut}</td>
+                <td class="p-2">₹${transaction.amount}</td>
+            </tr>
+        `).join('');
+    }
+
+    // Initialize page
+    document.addEventListener('DOMContentLoaded', function() {
+        loadEarningsData();
+        loadRecentTransactions();
+
+        // Update data every 30 seconds
+        setInterval(() => {
+            loadEarningsData();
+            loadRecentTransactions();
+        }, 30000);
     });
   </script>
   <script>
