@@ -562,6 +562,12 @@
     document.addEventListener('DOMContentLoaded', function() {
         loadEarningsData();
         loadRecentTransactions();
+
+        // Update data every 30 seconds
+        setInterval(() => {
+            loadEarningsData();
+            loadRecentTransactions();
+        }, 30000);
     });
   </script>
   <script>
